@@ -1,0 +1,9 @@
+# vim related
+*~
+*.swp
+*.bak
+
+# modelsim related
+*.wlf
+*.ini
+work/
