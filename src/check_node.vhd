@@ -121,6 +121,22 @@ architecture rtl_cfu of check_node is
     signal parity_s3_in_first_half_reg: std_logic;
 
     signal first: std_logic := '0';
+
+    signal parity_s3_out_mux: std_logic;
+    signal parity_s3_out_reg: std_logic;
+
+    signal data_out_mag_out_mux: t_four_min_s1_out_array;
+    signal data_out_mag_out_reg: t_four_min_s1_out_array;
+
+    signal data_out_pos_tc_out_mux: t_four_min_s2_out_array_tc;
+    signal data_out_pos_tc_out_reg: t_four_min_s2_out_array_tc;
+    
+
+    signal data_out_neg_tc_out_mux: t_four_min_s2_out_array_tc;
+    signal data_out_neg_tc_out_reg: t_four_min_s2_out_array_tc;
+    
+    
+    
     
 
 begin
@@ -303,6 +319,53 @@ begin
 	-- This is ok for now, but may be changed later.
 	parity_out <= parity_s2_i;
 
+    
+    -------------------------------------------------------------------------------
+    -- mux for selecting whether to use last cycle signal(for 2nd halves) or current cycle signals (for 1st halves)
+    -------------------------------------------------------------------------------
+    parity_s3_out_mux <= parity_s3 when count = 0 else parity_s3_out_reg;
+    -- data_out_pos_tc_out_mux <= data_out_pos_tc when count = 0 else data_out_pos_tc_out_reg;
+    -- data_out_neg_tc_out_mux <= data_out_neg_tc when count = 0 else data_out_neg_tc_out_reg;
+    index_s3_out_mux <= index_s3 when count = 0 else index_s3_out_reg;
+    -- data_out_mag_out_mux <= data_out_mag when count = 0 else data_out_mag_out_reg;
+    four_min_s3_out_out_mux <= four_min_s3_out when count = 0 else four_min_s3_out_reg;
+
+
+    -------------------------------------------------------------------------------
+    -- counter used for select signal in multiplexer
+    -------------------------------------------------------------------------------
+    process (clk)
+        variable count_var: integer 0 to 2 := 0;
+    begin
+        if (clk'event and clk = '1') then
+            if (first = '0') then
+                first <= '1';
+            else
+                count_var := count_var + 1;
+                if (count_var = 2) then
+                    count_var := 0;
+                end if;
+            end if;
+        end if;
+        count <= count_var;
+    end process;
+
+    
+    -------------------------------------------------------------------------------
+    -- registers for storing the minimums and paritys of the row for the second half
+    -------------------------------------------------------------------------------
+    process (clk)
+    begin
+        if (clk'event and clk = '1') then
+            data_out_pos_tc_out_reg <= data_out_pos_tc_out_mux;
+            data_out_neg_tc_out_reg <= data_out_neg_tc_out_mux;
+            parity_s3_out_reg <= parity_s3_out_mux;
+            index_s3_out_reg <= index_s3_out_mux;
+            data_out_mag_out_reg <= data_out_mag_out_mux;
+        end if;
+    end process;
+
+
 
 	--
 	-- The following part handles the output.
@@ -310,25 +373,25 @@ begin
 	--
     
     -- leave this like this because split is not used so output will always be four_min_s3_out
-	pr_split : process(split_i2, parity_s2_i, parity_s3, four_min_s2_out_i, four_min_s3_out, index_s2_i, index_s3)
+	pr_split : process(split_i2, parity_s2_i, parity_s3_out_mux, four_min_s2_out_i, four_min_s3_out_out_mux, index_s2_i, index_s3_out_mux)
 	begin
 		if split_i2 = '1' then
 			data_out_mag(0) <= four_min_s2_out_i(0);
 			parity_h <= parity_s2_i(0);
 			index_h <= index_s2_i(0);
 		else
-			data_out_mag(0) <= four_min_s3_out(0);
-			parity_h <= parity_s3;
-			index_h <= index_s3;
+			data_out_mag(0) <= four_min_s3_out_out_mux(0);
+			parity_h <= parity_s3_out_mux;
+			index_h <= index_s3_out_mux;
 		end if;
 		if split_i2 = '1' then
 			-- data_out_mag(1) <= four_min_s2_out_i(1);
 			parity_l <= parity_s2_i(1);
 			index_l <= index_s2_i(1);
 		else
-			data_out_mag(1) <= four_min_s3_out(0);
-			parity_l <= parity_s3;
-			index_l <= index_s3;
+			data_out_mag(1) <= four_min_s3_out_out_mux(0);
+			parity_l <= parity_s3_out_mux;
+			index_l <= index_s3_out_mux;
 		end if;
 	end process pr_split;
 
@@ -347,75 +410,75 @@ begin
 	data_out_pos_tc(1).min0 <= signed('0' & data_out_mag_scaled(1).min0);
 	data_out_pos_tc(1).min1 <= signed('0' & data_out_mag_scaled(1).min1);
 
-
-    process (clk)
-        variable count: integer 0 to 2 := 0;
-    begin
-        if (clk'event and clk = '1') then
-            if (first = '0') then
-                first <= '1';
-            else
-                count := count + 1;
-                if (count = 2) then
-                    count := 0;
-                end if;
-                if (count = 0) then
-                    parity_s3_out_mux <= parity_s3;
-                    data_out_pos_tc_out_mux <= data_out_pos_tc;
-                    data_out_neg_tc_out_mux <= data_out_neg_tc;
+    -- Upper tree
+    gen_out_upper : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
+        pr_gen_out_upper : process(parity_h, data_in_sign_i, data_out_mag, data_out_pos_tc, data_out_neg_tc, data_in_mag_i, index_h, index_l)
+            variable v_sign : std_logic;
+        begin
+            v_sign := parity_h xor data_in_sign_i(i);
+            if data_in_mag_i(i) = data_out_mag(0).min0 then
+                -- 			if index_h = i then
+                if v_sign = '1' then
+                    data_out(i) <= data_out_neg_tc(0).min1;
                 else
-                    parity_s3_out_mux <= parity_s3_out_mux;
-                    data_out_pos_tc_out_mux <= data_out_pos_tc_out_mux;
-                    data_out_neg_tc_out_mux <= data_out_neg_tc_out_mux;
+                    data_out(i) <= data_out_pos_tc(0).min1;
+                end if;
+            else
+                if v_sign = '1' then
+                    data_out(i) <= data_out_neg_tc(0).min0;
+                else
+                    data_out(i) <= data_out_pos_tc(0).min0;
                 end if;
             end if;
-        end process;
+        end process pr_gen_out_upper;
+    end generate;
 
     -- Upper tree
-        gen_out_upper : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
-		pr_gen_out_upper : process(parity_h, data_in_sign_i, data_out_mag, data_out_pos_tc, data_out_neg_tc, data_in_mag_i, index_h, index_l)
-			variable v_sign : std_logic;
-		begin
-			v_sign := parity_h xor data_in_sign_i(i);
-			if data_in_mag_i(i) = data_out_mag(0).min0 then
--- 			if index_h = i then
-				if v_sign = '1' then
-					data_out(i) <= data_out_neg_tc(0).min1;
-				else
-					data_out(i) <= data_out_pos_tc(0).min1;
-				end if;
-			else
-				if v_sign = '1' then
-					data_out(i) <= data_out_neg_tc(0).min0;
-				else
-					data_out(i) <= data_out_pos_tc(0).min0;
-				end if;
-			end if;
-		end process pr_gen_out_upper;
-	end generate;
+    -- gen_out_upper : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
+    --     pr_gen_out_upper : process(parity_h, data_in_sign_i, data_out_mag, data_out_pos_tc, data_out_neg_tc, data_in_mag_i, index_h, index_l)
+    --         variable v_sign : std_logic;
+    --     begin
+    --         v_sign := parity_h xor data_in_sign_i(i);
+    --         if data_in_mag_i(i) = data_out_mag(0).min0 then
+    --             -- 			if index_h = i then
+    --             if v_sign = '1' then
+    --                 data_out(i) <= data_out_neg_tc(0).min1;
+    --             else
+    --                 data_out(i) <= data_out_pos_tc(0).min1;
+    --             end if;
+    --         else
+    --             if v_sign = '1' then
+    --                 data_out(i) <= data_out_neg_tc(0).min0;
+    --             else
+    --                 data_out(i) <= data_out_pos_tc(0).min0;
+    --             end if;
+    --         end if;
+    -- 	end process pr_gen_out_upper;
+    -- end generate;
 
-	-- Lower tree
-	gen_out_lower : for i in (CFU_PAR_LEVEL/2) to (CFU_PAR_LEVEL - 1) generate
-		pr_gen_out_lower : process(parity_l, data_in_sign_i, data_in_mag_i, data_out_pos_tc, data_out_neg_tc, data_out_mag, index_h, index_l)
-			variable v_sign : std_logic;
-		begin
-			v_sign := parity_l xor data_in_sign_i(i);
-			if data_in_mag_i(i) = data_out_mag(1).min0 then
--- 			if index_l = i then
-				if v_sign = '1' then
-					data_out(i) <= data_out_neg_tc(1).min1;
-				else
-					data_out(i) <= data_out_pos_tc(1).min1;
-				end if;
-			else
-				if v_sign = '1' then
-					data_out(i) <= data_out_neg_tc(1).min0;
-				else
-					data_out(i) <= data_out_pos_tc(1).min0;
-				end if;
-			end if;
-		end process pr_gen_out_lower;
-	end generate;
+
+    -- Lower tree
+    gen_out_lower : for i in (CFU_PAR_LEVEL/2) to (CFU_PAR_LEVEL - 1) generate
+        pr_gen_out_lower : process(parity_l, data_in_sign_i, data_in_mag_i, data_out_pos_tc, data_out_neg_tc, data_out_mag, index_h, index_l)
+            variable v_sign : std_logic;
+        begin
+            v_sign := parity_l xor data_in_sign_i(i);           -- calculate sign of this output considering parity sign and input sign
+            if data_in_mag_i(i) = data_out_mag(1).min0 then     -- is this input the min0?
+                                                                -- 			if index_l = i then
+                if v_sign = '1' then
+                    data_out(i) <= data_out_neg_tc(1).min1;
+                else
+                    data_out(i) <= data_out_pos_tc(1).min1;
+                end if;
+            else
+                if v_sign = '1' then
+                    data_out(i) <= data_out_neg_tc(1).min0;
+                else
+                    data_out(i) <= data_out_pos_tc(1).min0;
+                end if;
+            end if;
+        end process pr_gen_out_lower;
+    end generate;
 
 
 end architecture rtl_cfu;
