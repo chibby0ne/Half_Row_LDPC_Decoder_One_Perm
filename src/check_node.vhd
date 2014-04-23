@@ -120,32 +120,32 @@ architecture rtl_cfu of check_node is
     signal parity_s3_in_first_half: std_logic;
     signal parity_s3_in_first_half_reg: std_logic;
 
-    signal first: std_logic := '0';
 
     signal parity_s3_out_mux: std_logic;
     signal parity_s3_out_reg: std_logic;
 
-    signal data_out_mag_out_mux: t_four_min_s1_out_array;
-    signal data_out_mag_out_reg: t_four_min_s1_out_array;
+    -- signal data_out_mag_out_mux: t_four_min_s1_out_array;
+    -- signal data_out_mag_out_reg: t_four_min_s1_out_array;
+    --
+    -- signal data_out_pos_tc_out_mux: t_four_min_s2_out_array_tc;
+    -- signal data_out_pos_tc_out_reg: t_four_min_s2_out_array_tc;
+    --
+    --
+    -- signal data_out_neg_tc_out_mux: t_four_min_s2_out_array_tc;
+    -- signal data_out_neg_tc_out_reg: t_four_min_s2_out_array_tc;
+    
+    signal index_s3_out_mux: unsigned(3 downto 0);
+    signal index_s3_out_reg: unsigned(3 downto 0);
+    
+    signal four_min_s3_out_out_mux: t_four_min_s3_out_array;
+    signal four_min_s3_out_out_reg: t_four_min_s3_out_array;
 
-    signal data_out_pos_tc_out_mux: t_four_min_s2_out_array_tc;
-    signal data_out_pos_tc_out_reg: t_four_min_s2_out_array_tc;
-    
-
-    signal data_out_neg_tc_out_mux: t_four_min_s2_out_array_tc;
-    signal data_out_neg_tc_out_reg: t_four_min_s2_out_array_tc;
+    signal first: std_logic := '0';
+    signal count: integer range 0 to 1 := 0;
     
     
-    
-    
-
 begin
 
-
-    
-    -- put registers (as flip flop) in the position where they correspond with the different stages of the pipeline
-    -- change all widths to cover just half a row
-    -- add the part where we store the first half of the layer minimus and index and sign in a register to wait for the other half and get the global mmin and sign and index.
 
 	--
 	-- concurrent assignments
@@ -159,7 +159,6 @@ begin
 	end generate;
 
     process (clk)
-        --declarativepart
     begin
         if (clk'event and clk = '1') then
             data_in_mag_i <= data_in_mag;
@@ -186,23 +185,11 @@ begin
 		four_min_s1_in(i).min3 <= sort_out(2*i+1).min1;
 	end generate;
 
+
 	-- evaluate the first stage of four min modules
 	gen_four_min_s1_out : for i in 0 to (CFU_PAR_LEVEL/4 - 1) generate
 		four_min_s1_out(i) <= four_min(four_min_s1_in(i));
 	end generate;
-
-	-- -- prepare input data for the second stage of four min modules
-	-- gen_four_min_s2_in : for i in 0 to (CFU_PAR_LEVEL/8 - 1) generate
-	-- 	four_min_s2_in(i).min0 <= four_min_s1_out(2*i).min0;
-	-- 	four_min_s2_in(i).min1 <= four_min_s1_out(2*i).min1;
-	-- 	four_min_s2_in(i).min2 <= four_min_s1_out(2*i+1).min0;
-	-- 	four_min_s2_in(i).min3 <= four_min_s1_out(2*i+1).min1;
-	-- end generate;
-    --
-	-- -- evaluate the second stage of four min modules
-	-- gen_four_min_s2_out : for i in 0 to (CFU_PAR_LEVEL/8 - 1) generate
-	-- 	four_min_s2_out(i) <= four_min(four_min_s2_in(i));
-	-- end generate;
 
 
 	-- prepare input data for the second stage of four min modules
@@ -263,16 +250,6 @@ begin
     end process;
 
 
-    -- generating the index of the first minima of second half row
-	-- index_s2(1) <= to_unsigned( 8, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '0' and sort_out(0).index = '0' else
-	--                to_unsigned( 9, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '0' and sort_out(0).index = '1' else
-	--                to_unsigned(10, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '1' and sort_out(1).index = '0' else
-	--                to_unsigned(11, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '1' and sort_out(1).index = '1' else
-	--                to_unsigned(12, 4) when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '0' and sort_out(2).index = '0' else
-	--                to_unsigned(13, 4) when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '0' and sort_out(2).index = '1' else
-	--                to_unsigned(14, 4) when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '1' and sort_out(3).index = '0' else
-	--                to_unsigned(15, 4);-- when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '1' and sort_out(3).index = '1';
-
 	index_s3 <= index_s2_first_half when four_min_s3_out(0).index = '0' else
 	            index_s2(0) + to_unsigned(8, 4);
 
@@ -291,21 +268,15 @@ begin
 		parity_s1(i) <= parity_s0(2*i) xor parity_s0(2*i+1);
 	end generate;
 
-	-- Evaluate third stage of xor
-	-- gen_parity_s2 : for i in 0 to (CFU_PAR_LEVEL/8 - 1) generate
-	-- 	parity_s2(i) <= parity_s1(2*i) xor parity_s1(2*i+1);
-	-- end generate;
-
-	-- Evaluate third stage of xor
+    -- Evaluate third stage of xor
 	parity_s2 <= parity_s1(0) xor parity_s1(1);
 
 
     -- connection between output of register holding first half row parity check and last xor stage input
     parity_s3_in_first_half <= parity_s3_in_first_half_reg;
 
-    -- sotre first half row check_node_info parity check
+    -- store first half row check_node_info parity check
     process (clk)
-        --declarativepart
     begin
         if (clk'event and clk = '1') then
             parity_s3_in_first_half_reg <= parity_s2;
@@ -328,14 +299,14 @@ begin
     -- data_out_neg_tc_out_mux <= data_out_neg_tc when count = 0 else data_out_neg_tc_out_reg;
     index_s3_out_mux <= index_s3 when count = 0 else index_s3_out_reg;
     -- data_out_mag_out_mux <= data_out_mag when count = 0 else data_out_mag_out_reg;
-    four_min_s3_out_out_mux <= four_min_s3_out when count = 0 else four_min_s3_out_reg;
+    four_min_s3_out_out_mux <= four_min_s3_out when count = 0 else four_min_s3_out_out_reg;
 
 
     -------------------------------------------------------------------------------
     -- counter used for select signal in multiplexer
     -------------------------------------------------------------------------------
     process (clk)
-        variable count_var: integer 0 to 2 := 0;
+        variable count_var: integer range 0 to 2 := 0;
     begin
         if (clk'event and clk = '1') then
             if (first = '0') then
@@ -357,14 +328,14 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            data_out_pos_tc_out_reg <= data_out_pos_tc_out_mux;
-            data_out_neg_tc_out_reg <= data_out_neg_tc_out_mux;
+            -- data_out_pos_tc_out_reg <= data_out_pos_tc_out_mux;
+            -- data_out_neg_tc_out_reg <= data_out_neg_tc_out_mux;
             parity_s3_out_reg <= parity_s3_out_mux;
             index_s3_out_reg <= index_s3_out_mux;
-            data_out_mag_out_reg <= data_out_mag_out_mux;
+            four_min_s3_out_out_reg <= four_min_s3_out_out_mux;
+            -- data_out_mag_out_reg <= data_out_mag_out_mux;
         end if;
     end process;
-
 
 
 	--
@@ -400,7 +371,7 @@ begin
 	data_out_mag_scaled(1).min0 <= esf_scale(data_out_mag(1).min0);
 	data_out_mag_scaled(1).min1 <= esf_scale(data_out_mag(1).min1);
 
-	-- Generate a positive and a negative tc variante
+	-- Generate a positive and a negative tc variant
 	data_out_neg_tc(0).min0 <= twos_comp_neg(data_out_mag_scaled(0).min0);
 	data_out_neg_tc(0).min1 <= twos_comp_neg(data_out_mag_scaled(0).min1);
 	data_out_neg_tc(1).min0 <= twos_comp_neg(data_out_mag_scaled(1).min0);
@@ -409,6 +380,7 @@ begin
 	data_out_pos_tc(0).min1 <= signed('0' & data_out_mag_scaled(0).min1);
 	data_out_pos_tc(1).min0 <= signed('0' & data_out_mag_scaled(1).min0);
 	data_out_pos_tc(1).min1 <= signed('0' & data_out_mag_scaled(1).min1);
+
 
     -- Upper tree
     gen_out_upper : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
@@ -432,29 +404,6 @@ begin
             end if;
         end process pr_gen_out_upper;
     end generate;
-
-    -- Upper tree
-    -- gen_out_upper : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
-    --     pr_gen_out_upper : process(parity_h, data_in_sign_i, data_out_mag, data_out_pos_tc, data_out_neg_tc, data_in_mag_i, index_h, index_l)
-    --         variable v_sign : std_logic;
-    --     begin
-    --         v_sign := parity_h xor data_in_sign_i(i);
-    --         if data_in_mag_i(i) = data_out_mag(0).min0 then
-    --             -- 			if index_h = i then
-    --             if v_sign = '1' then
-    --                 data_out(i) <= data_out_neg_tc(0).min1;
-    --             else
-    --                 data_out(i) <= data_out_pos_tc(0).min1;
-    --             end if;
-    --         else
-    --             if v_sign = '1' then
-    --                 data_out(i) <= data_out_neg_tc(0).min0;
-    --             else
-    --                 data_out(i) <= data_out_pos_tc(0).min0;
-    --             end if;
-    --         end if;
-    -- 	end process pr_gen_out_upper;
-    -- end generate;
 
 
     -- Lower tree

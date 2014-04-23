@@ -92,7 +92,7 @@ begin
         variable j: natural := 0;
 
     begin
-        if (not endfile(f)) then
+        if (not endfile(f_comp)) then
             -- report "reading from the input file";
 
             -- if first time 
@@ -151,16 +151,18 @@ begin
             else
                 -- from the second rising edge
 
+                if (not endfile(f)) then
                 -- read first half of the 2nd row
-                for i in 0 to CFU_PAR_LEVEL-1 loop
-                    readline(f, l);  
-                    read(l, index_input);
-                    read(l, input_val);
+                    for i in 0 to CFU_PAR_LEVEL-1 loop
+                        readline(f, l);  
+                        read(l, index_input);
+                        read(l, input_val);
                     -- report natural'image(index_input) & ' ' & integer'image(input_val);
 
-                    data_in_tb(i) <= to_signed(input_val, BW_EXTR);
+                        data_in_tb(i) <= to_signed(input_val, BW_EXTR);
 
-                end loop;
+                    end loop;
+                end if;
 
                 -- wait for propagation delay (necessary to read outputs)
                 wait for PD;
