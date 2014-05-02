@@ -42,26 +42,12 @@ package pkg_types is
     -- signal used for shifting the barrel shifter
     type t_bw_app_messages is array (BW_SHIFT_VEC - 1 downto 0) of std_logic;
 
-    --
-    -- APP Ram
-    --
-
-    -- matrix representing APP ram
-    type t_app_ram is array (BW_APP_MESSAGES_R050 - 1 downto 0) of t_app_messages;
-
-    -- used for in/out of APP ram
-    type t_app_ram_select is array (BW_APP_MESSAGES_R050 - 1 downto 0) of std_logic;
-
     
     -- iteration type
 
     type t_iter is array (BW_MAX_ITER - 1 downto 0) of std_logic;
 
 
-    -- message ram type
-    --------------------------------------
-    type t_msg_ram is array (R050_ROWS - 1 downto 0, CFU_PAR_LEVEL - 1 downto 0) of signed(BW_EXTR - 1 downto 0);
-    
 
 	-- Variable node types
 	------------------------

@@ -42,6 +42,15 @@ package pkg_param_derived is
 	-- Bits required to represent the amount of VFUs = 10
 	constant BW_NUM_VFU      : natural := no_bits_natural(NUM_VFU - 1);
 
+    -- Bits required to adddress msg ram
+    constant BW_MSG_RAM: natural := no_bits_natural(MSG_RAM_DEPTH - 1);
+
+    -- Bits required to address app ram
+    constant BW_APP_RAM: natural := no_bits_natural(APP_RAM_DEPTH - 1);
+ 
+
+
+
 	-- Number of bits to represent the CFU_PAR_LEVEL =  4
 	constant BW_CFU_PAR_LEVEL  : natural := no_bits_natural(CFU_PAR_LEVEL - 1);
 

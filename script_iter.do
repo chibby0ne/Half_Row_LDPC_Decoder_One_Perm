@@ -16,5 +16,5 @@ vcom -reportprogress -300 -work work src/app_ram.vhd
 vcom -reportprogress -300 -work work src/msg_ram.vhd 
 vcom -reportprogress -300 -work work src/check_node_block.vhd 
 
-vcom -reportprogress -300 -work work testbench/check_node_block_tb.vhd 
+vcom -reportprogress -300 -work work testbench/check_node_block_iter1_tb.vhd 
 

@@ -1,3 +1,3 @@
 vsim work.check_node_tb
-add wave -decimal sim:/*
+add wave sim:/*
 run -all

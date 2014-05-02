@@ -1,3 +1,4 @@
+-- index search is not needed as it isn't used for determining whether to select min0 or min1
 --!
 --! Copyright (C) 2010 - 2013 Creonic GmbH
 --!
@@ -32,7 +33,8 @@ port(
 
 	-- OUTPUTS
 	data_out      : out t_cn_message;
-	parity_out    : out std_logic_vector(1 downto 0)
+	-- parity_out    : out std_logic_vector(1 downto 0)
+	parity_out    : out std_logic
 );
 end check_node;
 
@@ -147,17 +149,20 @@ architecture rtl_cfu of check_node is
 begin
 
 
-	--
-	-- concurrent assignments
-	--
+    
+    --------------------------------------------------------------------------------------
+	-- Handling input 
+    --------------------------------------------------------------------------------------
 
 	-- split the sing from magnitude
 	gen_input_sign_mag : for i in 0 to (CFU_PAR_LEVEL - 1) generate
 		data_in_sign(i) <= data_in(i)(BW_EXTR - 1);
-		-- data_in_mag(i) <= unsigned(data_in(i)(BW_EXTR - 2 downto 0));
-		data_in_mag(i) <= unsigned(get_magnitude(data_in(i)));
+		data_in_mag(i) <= unsigned(data_in(i)(BW_EXTR - 2 downto 0));
+		-- data_in_mag(i) <= unsigned(get_magnitude(data_in(i)));
 	end generate;
 
+    
+    -- store input for next clock cycle
     process (clk)
     begin
         if (clk'event and clk = '1') then
@@ -165,6 +170,13 @@ begin
             data_in_sign_i <= data_in_sign;
         end if;
     end process;
+
+    
+
+    --------------------------------------------------------------------------------------
+	-- Generate the minimums for the check node.
+	-- It is represented by the following sort and four_min tree.
+    --------------------------------------------------------------------------------------
 
 	-- prepare magnitude of input data for the sorters
 	gen_sort_in : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
@@ -219,13 +231,14 @@ begin
     four_min_s3_in(0).min2 <= four_min_s2_out(0).min0;
     four_min_s3_in(0).min3 <= four_min_s2_out(0).min0;
 
-    -- evalue the third stage of the four min modules with the two halves rows info
+    -- evaluate the third stage of the four min modules with the two halves rows info
     four_min_s3_out(0) <= four_min(four_min_s3_in(0));
 
 
-    --
+    
+    --------------------------------------------------------------------------------------
 	-- Generate the index of the first minima
-    --
+    --------------------------------------------------------------------------------------
 
     -- generating the index of first minima of first half row 
 	index_s2(0) <= to_unsigned( 0, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '0' and sort_out(0).index = '0' else
@@ -249,14 +262,16 @@ begin
         end if;
     end process;
 
-
+    -- find minimums using two halves of the row
 	index_s3 <= index_s2_first_half when four_min_s3_out(0).index = '0' else
-	            index_s2(0) + to_unsigned(8, 4);
+                index_s2(0) + to_unsigned(8, 4);   -- + 8 because it is second row
 
-	--
+
+    
+    --------------------------------------------------------------------------------------
 	-- Generate the parity check for the check node.
 	-- It is represented by the following xor tree.
-	--
+    --------------------------------------------------------------------------------------
 
 	-- Evaluate first stage of xor
 	gen_parity_s0 : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
@@ -270,7 +285,6 @@ begin
 
     -- Evaluate third stage of xor
 	parity_s2 <= parity_s1(0) xor parity_s1(1);
-
 
     -- connection between output of register holding first half row parity check and last xor stage input
     parity_s3_in_first_half <= parity_s3_in_first_half_reg;
@@ -288,17 +302,17 @@ begin
 
 	-- Use parity s2 as output even if we are not in split mode.
 	-- This is ok for now, but may be changed later.
-	parity_out <= parity_s2_i;
+	parity_out <= parity_s3;
 
     
-    -------------------------------------------------------------------------------
-    -- mux for selecting whether to use last cycle signal(for 2nd halves) or current cycle signals (for 1st halves)
-    -------------------------------------------------------------------------------
+
+    --------------------------------------------------------------------------------------
+    -- This part stores the values calculated using the two halves for the first and second halve's output
+    --------------------------------------------------------------------------------------
+    
+    -- muxes for selecting whether to use last cycle signal(for 2nd halves) or current cycle signals (for 1st halves)
     parity_s3_out_mux <= parity_s3 when count = 0 else parity_s3_out_reg;
-    -- data_out_pos_tc_out_mux <= data_out_pos_tc when count = 0 else data_out_pos_tc_out_reg;
-    -- data_out_neg_tc_out_mux <= data_out_neg_tc when count = 0 else data_out_neg_tc_out_reg;
     index_s3_out_mux <= index_s3 when count = 0 else index_s3_out_reg;
-    -- data_out_mag_out_mux <= data_out_mag when count = 0 else data_out_mag_out_reg;
     four_min_s3_out_out_mux <= four_min_s3_out when count = 0 else four_min_s3_out_out_reg;
 
 
@@ -328,20 +342,18 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            -- data_out_pos_tc_out_reg <= data_out_pos_tc_out_mux;
-            -- data_out_neg_tc_out_reg <= data_out_neg_tc_out_mux;
             parity_s3_out_reg <= parity_s3_out_mux;
             index_s3_out_reg <= index_s3_out_mux;
             four_min_s3_out_out_reg <= four_min_s3_out_out_mux;
-            -- data_out_mag_out_reg <= data_out_mag_out_mux;
         end if;
     end process;
 
 
-	--
-	-- The following part handles the output.
-	-- Depending on the operation mode, different result registers have to be used.
-	--
+    
+    --------------------------------------------------------------------------------------
+    -- The following part handles the output.
+    -- Depending on the operation mode, different result registers have to be used.
+    --------------------------------------------------------------------------------------
     
     -- leave this like this because split is not used so output will always be four_min_s3_out
 	pr_split : process(split_i2, parity_s2_i, parity_s3_out_mux, four_min_s2_out_i, four_min_s3_out_out_mux, index_s2_i, index_s3_out_mux)
@@ -356,7 +368,7 @@ begin
 			index_h <= index_s3_out_mux;
 		end if;
 		if split_i2 = '1' then
-			-- data_out_mag(1) <= four_min_s2_out_i(1);
+			data_out_mag(1) <= four_min_s2_out_i(0);
 			parity_l <= parity_s2_i(1);
 			index_l <= index_s2_i(1);
 		else
@@ -366,6 +378,7 @@ begin
 		end if;
 	end process pr_split;
 
+    -- apply esf factor to minimums
 	data_out_mag_scaled(0).min0 <= esf_scale(data_out_mag(0).min0);
 	data_out_mag_scaled(0).min1 <= esf_scale(data_out_mag(0).min1);
 	data_out_mag_scaled(1).min0 <= esf_scale(data_out_mag(1).min0);

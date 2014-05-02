@@ -11,6 +11,7 @@ library work;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.pkg_param.all;
+use work.pkg_param_derived.all;
 use work.pkg_support.all;
 use work.pkg_types.all;
 use work.pkg_components.all;
@@ -21,11 +22,13 @@ use work.pkg_ieee_802_11ad_param.all;
 entity check_node_block is
 --generic declarations
     port (
+
         rst: in std_logic;
         clk: in std_logic;
         split: in std_logic;
         iter: in std_logic_vector(BW_MAX_ITER - 1 downto 0);
-        addr_msg_ram: in std_logic_vector(log2(MAX_ADDR) - 1 downto 0);
+        addr_msg_ram_read: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
+        addr_msg_ram_write: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
         app_in: in t_cnb_message_tc;   -- input type has to be of CFU_PAR_LEVEL because that's the number of edges that CFU handle
         
     -- outputs
@@ -36,136 +39,152 @@ end entity check_node_block;
 architecture circuit of check_node_block is
 
     
-    -- signals used for type casting 
-    signal iter_uns: unsigned(MAX_ITER - 1 downto 0);
-    signal addr_msg_ram_uns: unsigned(MAX_ADDR - 1 downto 0);
+    -- signals used by msg ram
+    signal extrinsic_info_read: t_cn_message;
+    signal extrinsic_info_write: t_cn_message;
     
-    -- signals that may be registered
-    signal check_node_in_i: t_cn_message;
-    signal check_node_out_i: t_cn_message;
-    
-    -- message ram 
-    signal msg_ram: t_msg_ram;      
 
-    -- signals used for shift_register
-    signal temp_app: t_cnb_message_tc;
-    signal temp_app_shift_register_out: t_cnb_message_tc;
+    -- signals used for FIFOs
+    signal zetas: t_cnb_message_tc;     -- signed(BW_APP)
+    signal zetas_fifo_intermediate: t_cnb_message_tc;   --signed(BW_APP)
+    signal zetas_fifo_out: t_cnb_message_tc;        -- signed (BW_APP)
 
     
     -- check node
-    signal check_node_in: t_cn_message;
-    signal check_node_out: t_cn_message;
-    signal check_node_parity_out: std_logic_vector(1 downto 0);
+    signal zetas_saturated: t_cn_message;   -- signed(BW_EXTR) 2's complement
+    signal zetas_saturated_sign_magn: t_cn_message; -- signed(BW_EXTR) sign-mag
+    signal check_node_in_reg_in: t_cn_message;     -- signal before register at input of CN
+    signal check_node_in_reg_out: t_cn_message;     -- signal after register at input of CN
+    signal check_node_out: t_cn_message;            -- signal output of CN
+    signal check_node_parity_out: std_logic; --signal output of CN (hard decision)
 
+
+    -- signal used for typecasting iteration count
+    signal iter_int: integer range 0 to 2**BW_MAX_ITER - 1;
+
+    
+    -- signals used to register input to CNB
+    signal app_in_reg: t_cnb_message_tc;
+    signal iter_int_reg: integer range 0 to 2**BW_MAX_ITER - 1;
+    signal addr_msg_ram_read_reg: std_logic_vector(BW_MSG_RAM - 1 downto 0);
+    signal addr_msg_ram_write_reg: std_logic_vector(BW_MSG_RAM - 1 downto 0);
+    
 
 begin
     
+
+    --------------------------------------------------------------------------------------
+    -- Type casting entity's ports
+    --------------------------------------------------------------------------------------
+    iter_int <= to_integer(unsigned(iter));
+
+
+    --------------------------------------------------------------------------------------
+    -- VC stage: Read APP to CNB
+    --------------------------------------------------------------------------------------
+    process (clk)
+    begin
+        if (clk'event and clk = '1') then
+            app_in_reg <= app_in;
+            iter_int_reg <= iter_int;
+            addr_msg_ram_read_reg <= addr_msg_ram_read;
+            addr_msg_ram_write_reg <= addr_msg_ram_write;
+        end if;
+    end process;
+
+    
+    --------------------------------------------------------------------------------------
+    -- message ram instantiation
+    --------------------------------------------------------------------------------------
+    msg_ram_ins: msg_ram port map (
+        clk => clk,
+        wr_address => addr_msg_ram_write_reg,
+        rd_address => addr_msg_ram_read_reg,
+        data_in => extrinsic_info_write,
+        data_out => extrinsic_info_read
+    );
+    
+    
+    --------------------------------------------------------------------------------------
     -- substract the APPin with E(i-1) and store that value in a FIFO so that we can
+    --------------------------------------------------------------------------------------
     subs: for i in CFU_PAR_LEVEL - 1 downto 0 generate
-        temp_app(i) <= app_in(i) when iter = 0 else                 -- for first iteration we skip substraction
-                       app_in(i) - t_msg_ram(addr_msg_ram, i);      -- for the rest
+        zetas(i) <= app_in_reg(i) when iter_int_reg = 0 else                 -- for first iteration we skip substraction
+                       app_in_reg(i) - extrinsic_info_read(i);      -- for the rest
     end generate subs;
 
     
-    -- saturate all the temp_app
-    saturate: for i in CFU_PAR_LEVEL -1 downto 0  generate
-        check_node_in_i(i) <= saturate(temp_app(i), BW_EXTR)
-    end generate saturate;
+    --------------------------------------------------------------------------------------
+    -- saturate all the zetas
+    --------------------------------------------------------------------------------------
+    saturates: for i in CFU_PAR_LEVEL - 1 downto 0  generate
+        zetas_saturated(i) <= saturate(zetas(i), BW_EXTR);
+    end generate saturates;
+
+    
+    --------------------------------------------------------------------------------------
+    -- 2's complement to sign-magnitude
+    --------------------------------------------------------------------------------------
+    twos_comp_sign_magn: for i in CFU_PAR_LEVEL - 1 downto 0 generate
+        zetas_saturated_sign_magn(i) <= sign_magnitude(zetas_saturated(i));
+    end generate twos_comp_sign_magn;
+
+    
+    --------------------------------------------------------------------------------------
+    -- input for CN is ready, but needs to be registered (pipeline stage RP)
+    --------------------------------------------------------------------------------------
+    check_node_in_reg_in <= zetas_saturated_sign_magn;
 
 
+    --------------------------------------------------------------------------------------
+    -- pipeline register before the input to CN (Check Node) Pipeline stage RP
+    --------------------------------------------------------------------------------------
+    process (clk)
+    begin
+        if (clk'event and clk = '1') then
+            check_node_in_reg_out <= check_node_in_reg_in;
+        end if;
+    end process;
+
+
+    --------------------------------------------------------------------------------------
     -- instantiate one CFU and connect the inputs to it
+    --------------------------------------------------------------------------------------
     check_node_ins: check_node port map (
                                             rst => rst,
                                             clk => clk,
-                                            data_in => check_node_in,
+                                            data_in => check_node_in_reg_out,
                                             split => split,
-
                                             data_out => check_node_out,
                                             parity_out => check_node_parity_out
                                         );
+    
+    
+    --------------------------------------------------------------------------------------
+    -- write new extrinsic info in message ram
+    --------------------------------------------------------------------------------------
+    extrinsic_info_write <= check_node_out;
+       
+    --------------------------------------------------------------------------------------
+    -- FIFOs used to store the A priori info (Zn->m)
+    --------------------------------------------------------------------------------------
+    process (clk)
+    begin
+        if (clk'event and clk = '1') then
+            for i in CFU_PAR_LEVEL-1 downto 0 loop
+                zetas_fifo_intermediate(i) <= zetas(i);
+                zetas_fifo_out(i) <= zetas_fifo_intermediate(i);
+            end loop;
+        end if;
+    end process;
 
     
-    --
-    -- Shift register (FIFO in Thesis' figure)
-    --
-    -- calculation of number of stages of shift register 
-
-    --  IDEA: use same procedure as in check node!!
-    stage_0 <= 1 when REG_CFU_IN = true else 0;
-
-    stage_1 <= 1 when REG_CFU_MID = true else 0;
-
-    stage_2 <= 1 when REG_VFU_TO_CFU = true else 0;
-
-    stage_3 <= 1 when REG_CFU_TO_VFU = true else 0;
-
-
-    -- need to instantiate a FIFO and connect it to temp_app
-    shift_registers: for i in VFU_PAR_LEVEL - 1 downto 0 generate
-        shift_register_ins: shift_register port map (
-                                    rst => rst,
-                                    clk => clk,
-                                    stages => stage_0 + stage_1 + stage_2 + stage_3,
-                                    input => temp_app(i),
-                                    output => temp_app_shift_register_out(i)
-                                );
-    end generate shift_registers;
-
-    
-    -- sum all the temp_apps with the output of check_node
-    gen_new_app_sum: for i in VFU_PAR_LEVEL - 1 downto 0 generate
-        app_out_i(i) <= temp_app_shift_register_out(i) + check_node_out_i(i);
+    --------------------------------------------------------------------------------------
+    -- sum all the zetas with the output of check_node
+    --------------------------------------------------------------------------------------
+    gen_new_app_sum: for i in CFU_PAR_LEVEL - 1 downto 0 generate
+        app_out(i) <= zetas_fifo_out(i) + check_node_out(i);
     end generate gen_new_app_sum;
 
-
-    --
-    -- These processes insert registers if requested
-    --
-
-
-    -- Insert no registers between VFU to CFU
-    gen_noreg_input_cfu: if REG_VFU_TO_CFU = false generate
-
-        check_node_in <= check_node_in_i;
-
-    end generate gen_noreg_input_cfu;
-
-
-    -- Insert registers between VFU to CFU
-    gen_reg_input_cfu: if REG_VFU_TO_CFU = true generate
-
-        check_node_in <= check_node_in_reg;
-
-        pr_reg_vfu_cfu: process (clk)
-        begin
-            if (rising_edge(clk)) then
-                check_node_in_reg <= check_node_in_i;
-            end if;
-        end process pr_reg_vfu_cfu;
-
-    end generate gen_reg_input_cfu;
-
-
-    -- Insert no registers between CFU to VFU
-    gen_noreg_output_cfu: if REG_CFU_TO_VFU = false  generate
-
-        check_node_out_i <= check_node_out;
-
-    end generate gen_noreg_output_cfu;
-
-
-    -- Insert register between CFU to VFU
-    gen_reg_output_cfu: for REG_CFU_TO_VFU = true in range generate
-
-        check_node_out_i <= check_node_out_reg;
-
-        pr_reg_cfu_vfu: process (clk)
-        begin
-            if (rising_edge(clk)) then
-                check_node_out_reg <= check_node_out;
-            end if;
-        end process pr_reg_cfu_vfu;
-
-    end generate gen_reg_output_cfu;
 
 end architecture circuit;
