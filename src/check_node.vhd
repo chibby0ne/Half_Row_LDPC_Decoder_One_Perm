@@ -33,7 +33,6 @@ port(
 
 	-- OUTPUTS
 	data_out      : out t_cn_message;
-	-- parity_out    : out std_logic_vector(1 downto 0)
 	parity_out    : out std_logic
 );
 end check_node;

@@ -26,9 +26,9 @@ entity check_node_block is
         rst: in std_logic;
         clk: in std_logic;
         split: in std_logic;
-        iter: in std_logic_vector(BW_MAX_ITER - 1 downto 0);
-        addr_msg_ram_read: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
-        addr_msg_ram_write: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
+        iter: in t_iter;
+        addr_msg_ram_read: in t_msg_ram_addr;
+        addr_msg_ram_write: in t_msg_ram_addr;
         app_in: in t_cnb_message_tc;   -- input type has to be of CFU_PAR_LEVEL because that's the number of edges that CFU handle
         
     -- outputs

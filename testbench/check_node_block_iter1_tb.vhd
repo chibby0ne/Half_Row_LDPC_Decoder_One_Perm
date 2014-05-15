@@ -36,9 +36,9 @@ architecture circuit of check_node_block_tb is
         rst: in std_logic;
         clk: in std_logic;
         split: in std_logic;
-        iter: in std_logic_vector(BW_MAX_ITER - 1 downto 0);
-        addr_msg_ram_read: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
-        addr_msg_ram_write: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
+        iter: in t_iter;
+        addr_msg_ram_read: in t_msg_ram_addr;
+        addr_msg_ram_write: in t_msg_ram_addr;
         app_in: in t_cnb_message_tc;   -- input type has to be of CFU_PAR_LEVEL because that's the number of edges that CFU handle
         
     -- outputs
@@ -54,9 +54,9 @@ architecture circuit of check_node_block_tb is
     signal rst_tb: std_logic := '0';
     signal clk_tb: std_logic := '0';
     signal split_tb: std_logic := '0';
-    signal iter_tb: std_logic_vector(BW_MAX_ITER - 1 downto 0) := (others => '0');
-    signal addr_msg_ram_read_tb: std_logic_vector(BW_MSG_RAM - 1 downto 0);
-    signal addr_msg_ram_write_tb: std_logic_vector(BW_MSG_RAM - 1 downto 0);
+    signal iter_tb: t_iter := (others => '0');
+    signal addr_msg_ram_read_tb: t_msg_ram_addr;
+    signal addr_msg_ram_write_tb: t_msg_ram_addr;
     signal app_in_tb: t_cnb_message_tc;
     signal app_out_tb: t_cnb_message_tc;
     
@@ -98,7 +98,6 @@ begin
     split_tb <= '0';
 
     -- iter
-    -- iter_tb <= std_logic_vector(to_unsigned(1, BW_MAX_ITER)) after PERIOD / 2 + PD;
     iter_tb <= std_logic_vector(to_unsigned(1, BW_MAX_ITER)) after PERIOD/2 + PD + PERIOD * 15;  -- see drawing for explanation
 
     -- addr_msg_ram_read

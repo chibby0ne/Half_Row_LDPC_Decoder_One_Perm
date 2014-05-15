@@ -33,21 +33,16 @@ package pkg_types is
 
     
     type t_out_hard is array (NUM_VFU - 1 downto 0) of std_logic;
-    --
+
     -- Permutation network in/out
-    --
+    ------------------------------
+    -- messages in/out 
     type t_app_messages is array (SUBMAT_SIZE - 1 downto 0) of signed(BW_APP - 1 downto 0);
     
+    -- shift value
+    subtype t_shift_perm_net is std_logic_vector(BW_SHIFT_VEC - 1 downto 0);
     
-    -- signal used for shifting the barrel shifter
-    type t_bw_app_messages is array (BW_SHIFT_VEC - 1 downto 0) of std_logic;
-
     
-    -- iteration type
-
-    type t_iter is array (BW_MAX_ITER - 1 downto 0) of std_logic;
-
-
 
 	-- Variable node types
 	------------------------
@@ -67,14 +62,44 @@ package pkg_types is
     -- type t_cn_message is array (CFU_PAR_LEVEL - 1 downto 0) of std_logic_vector(BW_EXTR - 1 downto 0);
 	type t_cn_message is array (CFU_PAR_LEVEL - 1 downto 0) of signed(BW_EXTR - 1 downto 0);
 	
-    
-    -- Added by AJGP
-    -- Array of data in/out of a check node block CNB
-	type t_cnb_message_tc is array (CFU_PAR_LEVEL - 1 downto 0) of signed(BW_APP - 1 downto 0);
-	
 	-- Array of magnitude data of a check node
 	type t_cn_mag is array (CFU_PAR_LEVEL - 1 downto 0) of unsigned(BW_EXTR - 2 downto 0);
 
+
+
+-- Check Node Block 
+    ---------------
+ -- Added by AJGP
+    -- Array of data in/out of a check node block CNB
+	type t_cnb_message_tc is array (CFU_PAR_LEVEL - 1 downto 0) of signed(BW_APP - 1 downto 0);
+
+    -- msg ram addr type
+    subtype t_msg_ram_addr is std_logic_vector(BW_MSG_RAM - 1 downto 0);
+
+     -- iteration type
+    subtype t_iter is std_logic_vector(BW_MAX_ITER - 1 downto 0);
+
+   
+    -- APP ram
+    -------------
+    -- app ram addr
+    subtype t_app_ram_addr is std_logic_vector(BW_APP_RAM - 1 downto 0);
+
+
+
+    -- Controller types
+    ----------------------
+    -- 8 APP rams
+    type t_app_addr_contr is array (CFU_PAR_LEVEL - 1 downto 0) of t_app_ram_addr;
+
+    -- 42 msg rams (1 per CNB)
+    type t_msg_addr_contr is array (SUBMAT_SIZE - 1 downto 0) of t_msg_ram_addr;
+
+    -- 42 CNBs
+    type t_parity_out_contr is array (SUBMAT_SIZE - 1 downto 0) of std_logic;
+
+    --- 8 permutations networks
+    type t_shift_contr is array (CFU_PAR_LEVEL - 1 downto 0) of t_shift_perm_net;
 
 
 

@@ -22,8 +22,8 @@ use work.pkg_types.all;
 entity msg_ram is
     port (
         clk: in std_logic;
-        wr_address: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
-        rd_address: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
+        wr_address: in t_msg_ram_addr;
+        rd_address: in t_msg_ram_addr;
         data_in: in t_cn_message;
         data_out: out t_cn_message);
 end entity msg_ram;
