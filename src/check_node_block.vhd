@@ -26,13 +26,18 @@ entity check_node_block is
         rst: in std_logic;
         clk: in std_logic;
         split: in std_logic;
+        ena_vc: in std_logic;
+        ena_rp: in std_logic;
+        ena_ct: in std_logic;
+        ena_cf: in std_logic;
         iter: in t_iter;
         addr_msg_ram_read: in t_msg_ram_addr;
         addr_msg_ram_write: in t_msg_ram_addr;
         app_in: in t_cnb_message_tc;   -- input type has to be of CFU_PAR_LEVEL because that's the number of edges that CFU handle
         
     -- outputs
-        app_out: out t_cnb_message_tc  -- output type should be the same as input
+        app_out: out t_cnb_message_tc;  -- output type should be the same as input
+        check_node_parity_out: out std_logic
 ); 
 end entity check_node_block;
 
@@ -88,7 +93,7 @@ begin
             app_in_reg <= app_in;
             iter_int_reg <= iter_int;
             addr_msg_ram_read_reg <= addr_msg_ram_read;
-            addr_msg_ram_write_reg <= addr_msg_ram_write;
+            -- addr_msg_ram_write_reg <= addr_msg_ram_write;
         end if;
     end process;
 
@@ -98,7 +103,8 @@ begin
     --------------------------------------------------------------------------------------
     msg_ram_ins: msg_ram port map (
         clk => clk,
-        wr_address => addr_msg_ram_write_reg,
+        -- wr_address => addr_msg_ram_write_reg,
+        wr_address => addr_msg_ram_write,
         rd_address => addr_msg_ram_read_reg,
         data_in => extrinsic_info_write,
         data_out => extrinsic_info_read

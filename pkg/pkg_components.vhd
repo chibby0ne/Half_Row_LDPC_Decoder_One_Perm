@@ -16,46 +16,30 @@ use work.pkg_support_global.all;
 use work.pkg_param.all;
 use work.pkg_param_derived.all;
 use work.pkg_types.all;
--- use work.pkg_pipe.all;
 use work.pkg_check_node.all;
 
 
 package pkg_components is
 
-
-	component variable_node is
-		port(
-			-- INPUTS
-			data_in             : in t_vn_message;
-			intrinsic_message   : in signed(BW_CHV - 1 downto 0);
-
-			-- OUTPUTS
-			data_out            : out t_vn_message;
-			hard_decision       : out std_logic
-		);
-	end component;
+    --------------------------------------------------------------------------------------
+    -- mux 2 to 1 used in input of app
+    --------------------------------------------------------------------------------------
+    component mux2_1 is
+    port (
+        input0: in std_logic_vector(SUBMAT_SIZE - 1 downto 0);
+        input1: in std_logic_vector(SUBMAT_SIZE - 1 downto 0);
+        sel: in std_logic;
+        output: out std_logic_vector(SUBMAT_SIZE - 1 downto 0));
+    end component mux2_1;
 
 
-	component check_node is
-		port(
-
-			-- INPUTS
-			rst           : in std_logic;
-			clk           : in std_logic;
-			data_in       : in t_cn_message;
-			split         : in std_logic; -- is the CN working in split mode
-
-			-- OUTPUTS
-			data_out      : out t_cn_message;
-			-- parity_out    : out std_logic_vector(1 downto 0)
-			parity_out    : out std_logic
-		);
-	end component;
-
-
+    --------------------------------------------------------------------------------------
+    -- app ram
+    --------------------------------------------------------------------------------------
     component app_ram is
         port (
                  clk: in std_logic;
+                 we: in std_logic;
                  wr_address: in std_logic_vector(BW_APP_RAM - 1 downto 0);
                  rd_address: in std_logic_vector(BW_APP_RAM - 1 downto 0);
                  data_in: in t_app_messages;
@@ -63,72 +47,116 @@ package pkg_components is
     end component app_ram;
 
 
+    --------------------------------------------------------------------------------------
+    -- mux 3 to 1 used in output of app
+    --------------------------------------------------------------------------------------
+    component mux3_1 is
+    port (
+        input0: in std_logic_vector(SUBMAT_SIZE - 1 downto 0);
+        input1: in std_logic_vector(SUBMAT_SIZE - 1 downto 0);
+        input2: in std_logic_vector(SUBMAT_SIZE - 1 downto 0);
+        sel: in std_logic_vector(1 downto 0);
+        output: out std_logic_vector(SUBMAT_SIZE - 1 downto 0));
+    end component mux3_1;
+
+    
+    --------------------------------------------------------------------------------------
+    -- permutation network
+    --------------------------------------------------------------------------------------
+    component permutation_network is
+        -- generic(const_name const_type = const_value)
+        port (
+            input: in t_app_messages;
+            shift: in std_logic_vector(BW_SHIFT_VEC - 1 downto 0);
+            output: out t_app_messages);
+    end component permutation_network;
+
+    --------------------------------------------------------------------------------------
+    -- check node block
+    --------------------------------------------------------------------------------------
+    component check_node_block is
+    port (
+
+        rst: in std_logic;
+        clk: in std_logic;
+        split: in std_logic;
+        ena_vc: in std_logic;
+        ena_rp: in std_logic;
+        ena_ct: in std_logic;
+        ena_cf: in std_logic;
+        iter: in t_iter;
+        addr_msg_ram_read: in t_msg_ram_addr;
+        addr_msg_ram_write: in t_msg_ram_addr;
+        app_in: in t_cnb_message_tc;   -- input type has to be of CFU_PAR_LEVEL because that's the number of edges that CFU handle
+        
+    -- outputs
+        app_out: out t_cnb_message_tc;  -- output type should be the same as input
+        check_node_parity_out: out std_logic
+    ); 
+    end component check_node_block;
+
+
+    --------------------------------------------------------------------------------------
+    -- check node 
+    --------------------------------------------------------------------------------------
+	component check_node is
+        port(
+                -- INPUTS
+                rst           : in std_logic;
+                clk           : in std_logic;
+                ena_ct        : in std_logic;
+                ena_cf        : in std_logic;
+                data_in       : in t_cn_message;
+                split         : in std_logic; -- is the CN working in split mode
+
+                -- OUTPUTS
+                data_out      : out t_cn_message;
+                parity_out    : out std_logic
+            );
+   	end component;
+
+    
+    --------------------------------------------------------------------------------------
+    -- msg ram
+    --------------------------------------------------------------------------------------
     component msg_ram is
         port (
                  clk: in std_logic;
+                 we: in std_logic;
                  wr_address: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
                  rd_address: in std_logic_vector(BW_MSG_RAM - 1 downto 0);
                  data_in: in t_cn_message;
                  data_out: out t_cn_message);
     end component msg_ram;
 
+    
+    --------------------------------------------------------------------------------------
+    -- controller
+    --------------------------------------------------------------------------------------
+    component controller is
+    port (
+        -- inputs
+             clk: in std_logic;
+             rst: in std_logic;
+             code_rate: in t_code_rate;
+             parity_out: in t_parity_out_contr;
 
--- component net_chan_to_cfu is
--- 	port(
--- 		-- Config
--- 		code_rate : in t_code_rate;
---
--- 		-- Channel values
--- 		chv_val : in t_chv_array;
---
--- 		-- Check node inputs
--- 		chv_to_cfu : out t_cfu_array
---
--- 	);
--- end component;
---
--- component net_cfu_to_vfu is
--- 	port(
--- 		-- Config
--- 		code_rate : in t_code_rate;
---
--- 		cfu_out   : in t_cfu_array;
---
--- 		vfu_in    : out t_vfu_array
---
--- 	);
--- end component;
---
--- component net_vfu_to_cfu is
--- 	port(
--- 		-- Config
--- 		code_rate : in t_code_rate;
---
--- 		vfu_out   : in t_vfu_array;
---
--- 		cfu_in    : out t_cfu_array
---
--- 	);
-	-- end component;
-    --
-    --
-	-- component pipe is
-	-- 	port(
-	-- 		-- Global I/O
-	-- 		clk     : in  std_logic;
-	-- 		rst     : in  std_logic;
-    --
-	-- 		-- Config
-	-- 		code_rate : in t_code_rate;
-    --
-	-- 		-- Channel values
-	-- 		chv_val : in t_chv_array;
-	-- 		chv_val_valid : in std_logic;
-    --
-	-- 		-- Decoding results
-	-- 		dec_bits         : out std_logic_vector(NUM_VFU - 1 downto 0);
-	-- 		dec_bits_valid   : out std_logic -- TODO set
-	-- 	);
-	-- end component;
-
+        -- outputs
+             ena_vc: out std_logic;
+             ena_rp: out std_logic;
+             ena_ct: out std_logic;
+             ena_cf: out std_logic;
+             valid_output: out std_logic;
+             iter: out t_iter;
+             app_rd_addr: out std_logic;
+             app_wr_addr: out std_logic;
+             msg_rd_addr: out t_msg_ram_addr;
+             msg_wr_addr: out t_msg_ram_addr;
+             shift: out t_shift_contr;
+             mux_input_app: out std_logic;        -- mux at input of app rams used for storing (0 = CNB, 1 = new code)
+             mux_output_app: out t_mux_out_app                    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
+         );
+    end component controller;
+    
+    
 end pkg_components;
