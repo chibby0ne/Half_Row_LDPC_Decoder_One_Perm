@@ -86,6 +86,9 @@ package pkg_types is
     subtype t_app_ram_addr is std_logic_vector(BW_APP_RAM - 1 downto 0);
 
 
+    -- MUX at output of APP 
+    -----------------------
+    type t_mux_out_app is array (CFU_PAR_LEVEL - 1 downto 0) of std_logic_vector(1 downto 0);
 
     -- Controller types
     ----------------------
@@ -101,6 +104,15 @@ package pkg_types is
     --- 8 permutations networks
     type t_shift_contr is array (CFU_PAR_LEVEL - 1 downto 0) of t_shift_perm_net;
 
+    -- Top Level
+    --------------
+
+    -- 8 of each app message
+    type t_message_app_full_codeword is array (2 * CFU_PAR_LEVEL - 1 downto 0) of t_app_messages;
+    type t_message_app_half_codeword is array (CFU_PAR_LEVEL - 1 downto 0) of t_app_messages;
+
+    -- 42 of each cnb message
+    type t_cnb_message_tc_top_level is array (SUBMAT_SIZE - 1 downto 0) of t_cnb_message_tc;
 
 
 

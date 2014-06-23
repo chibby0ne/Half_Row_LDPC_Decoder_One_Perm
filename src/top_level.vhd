@@ -22,62 +22,76 @@ entity top_level is
         clk: in std_logic;
         rst: in std_logic;
         code_rate: in t_code_rate;
-        input: in std_logic_vector(MAX_CHV - 1 downto 0);
+        input: in t_message_app_full_codeword; 
 
         -- outputs
         valid_output: out std_logic;
-        output: out std_logic_vector(MAX_CHV - 1 downto 0));
+        output: out t_message_app_full_codeword);
 end entity top_level;
 --------------------------------------------------------
 architecture circuit of top_level is
 
-    -- signals by every module 
-    signal clk: std_logic;
 
 
     -- signals used as in/out APP and its muxes
-    signal mux_app_input_in_cnb: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
-    signal mux_app_input_in_newcode: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
-    signal mux_app_input_out: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
-    signal mux_app_output_in_app: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
-    signal mux_app_output_in_dummy: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
-    signal mux_app_output_in_newcode: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
-    signal mux_app_output_out: t_asdasd; 
+    signal mux_app_input_in_cnb: t_message_app_half_codeword;
+    signal mux_app_input_in_newcode: t_message_app_half_codeword;
+    signal mux_app_input_out: t_message_app_half_codeword;
+    signal mux_app_output_in_app: t_message_app_half_codeword; 
+    signal mux_app_output_in_dummy: t_message_app_half_codeword;
+    signal mux_app_output_in_newcode: t_message_app_half_codeword;
+    signal mux_app_output_out: t_message_app_half_codeword; 
     
-
+    
     
     -- signals used in app
-    signal app_in: t_app ;
-    signal app_out: t_app ;
+    signal app_in: t_message_app_half_codeword ;
+    signal app_out: t_message_app_half_codeword ;
     
     -- signals used by permutation networks
-    signal perm_input: std_logic;
-    signal perm_output: std_logic;
+    signal perm_input: t_message_app_half_codeword;
+    signal perm_output: t_message_app_half_codeword;
     
     -- signals used by cnbs
-    signal sum: std_logic := '0';
+    signal cnb_input: t_cnb_message_tc_top_level;
+    signal cnb_output: t_cnb_message_tc_top_level;
     
     
     -- singals used by controller
     signal rst: std_logic;
+    signal parity_out: t_parity_out_contr;
     signal ena_vc: std_logic;
     signal ena_rp: std_logic;
     signal ena_ct: std_logic;
     signal ena_cf: std_logic;
     signal valid_output: std_logic;
-    signal iter: std_logic;
+    signal iter: t_iter;
     signal app_rd_addr: std_logic;
     signal app_wr_addr: std_logic;
     signal msg_rd_addr: t_msg_ram_addr;
     signal msg_wr_addr: t_msg_ram_addr;
     signal shift: t_shift_contr;
+    signal mux_input_halves: std_logic;
     signal mux_input_app: std_logic;        
-    signal mux_output_app:t_mux_out_app;
+    signal mux_output_app: t_mux_out_app;
 
    
 begin
 
     
+    --------------------------------------------------------------------------------------
+    -- muxes to select halves of codeword
+    --------------------------------------------------------------------------------------
+    gen_mux_input_halves: for i in CFU_PAR_LEVEL - 1 downto 0 generate
+        mux_input_halves_ins: mux2_1 port map (
+            input0 => input( ( (MAX_CHV / 2 - 1) - (SUBMAT_SIZE * (CFU_PAR_LEVEL - (i + 1) ) ) ) downto ( MAX_CHV / 2 - (SUBMAT_SIZE * (CFU_PAR_LEVEL - i) ) ) ),      --- calc
+            input1 => input( ( (MAX_CHV - 1) - (SUBMAT_SIZE * (CFU_PAR_LEVEL - (i + 1) ) ) ) downto ( MAX_CHV - (SUBMAT_SIZE * (CFU_PAR_LEVEL - i) ) ) ),
+            sel => mux_input_halves,
+            output => mux_app_input_in_newcode(i)
+        );
+    end generate gen_mux_input_halves;
+    
+
     --------------------------------------------------------------------------------------
     -- muxes at input of apps instantiations
     --------------------------------------------------------------------------------------
@@ -159,15 +173,17 @@ begin
     --------------------------------------------------------------------------------------
     -- connection between permutation networks and cnbs
     --------------------------------------------------------------------------------------
-    gen_pemutation_network_output_conex: for i in CFU_PAR_LEVEL - 1 downto 0 generate
-        cnb_input(i) <= perm_output(i);
-    end generate gen_pemutation_network_output_conex;
+    gen_permutation_network_output_conex_detail: for j in SUBMAT_SIZE - 1 downto 0 generate
+        gen_pemutation_network_output_conex: for i in CFU_PAR_LEVEL - 1 downto 0 generate
+            cnb_input(j)(i) <= perm_output(i)(j);
+        end generate gen_pemutation_network_output_conex;
+    end generate gen_permutation_network_output_conex_detail;
     
 
     --------------------------------------------------------------------------------------
     -- cnbs intantiations
     --------------------------------------------------------------------------------------
-    gen_cnbs: for i in CFU_PAR_LEVEL - 1 downto 0 generate
+    gen_cnbs: for j in SUBMAT_SIZE - 1 downto 0 generate
         cnbs_ins: check_node_block port map (
         rst => rst,
         clk => clk,
@@ -179,14 +195,15 @@ begin
         iter => iter,
         addr_msg_ram_read => addr_msg_ram_read,
         addr_msg_ram_write => addr_msg_ram_write,
-        app_in => app_in,
-        app_out => app_out
+        app_in => cnb_input(j),
+        app_out => cnb_output(j)
         );
     end generate gen_cnbs;
 
     
+
     --------------------------------------------------------------------------------------
-    -- connections between cnbs and mux at input of apps
+    -- connections between inverse permutation networks and mux at input of apps
     --------------------------------------------------------------------------------------
     gen_cnb_output_app: for i in CFU_PAR_LEVEL - 1 downto 0 generate
         app_out(i) <= mux_input_app(i);
@@ -215,6 +232,7 @@ begin
              msg_rd_addr => msg_rd_addr,
              msg_wr_addr => msg_wr_addr,
              shift => shift,
+             mux_input_halves => mux_input_halves,
              mux_input_app => mux_input_app,
              mux_output_app => mux_output_app
     );
@@ -222,9 +240,15 @@ begin
     
     
     --------------------------------------------------------------------------------------
-    -- connections between controller and all the circuits
+    -- output ordering
     --------------------------------------------------------------------------------------
-
+    output_module_ins: output_module port map (
+        clk => clk,
+        code_rate => code_rate,
+        valid => valid_output,
+        input => app,
+        output => output
+    );
 
 
 end architecture circuit;
