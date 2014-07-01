@@ -26,7 +26,7 @@ entity top_level is
 
         -- outputs
         valid_output: out std_logic;
-        output: out t_message_app_full_codeword);
+        output: out t_hard_decision_full_codeword);
 end entity top_level;
 --------------------------------------------------------
 architecture circuit of top_level is
@@ -55,6 +55,8 @@ architecture circuit of top_level is
     -- signals used by cnbs
     signal cnb_input: t_cnb_message_tc_top_level;
     signal cnb_output: t_cnb_message_tc_top_level;
+    signal hard_bits_cnb: t_hard_decision_bits_half_codeword;
+    
     
     
     -- singals used by controller
@@ -84,8 +86,11 @@ begin
     --------------------------------------------------------------------------------------
     gen_mux_input_halves: for i in CFU_PAR_LEVEL - 1 downto 0 generate
         mux_input_halves_ins: mux2_1 port map (
-            input0 => input( ( (MAX_CHV / 2 - 1) - (SUBMAT_SIZE * (CFU_PAR_LEVEL - (i + 1) ) ) ) downto ( MAX_CHV / 2 - (SUBMAT_SIZE * (CFU_PAR_LEVEL - i) ) ) ),      --- calc
-            input1 => input( ( (MAX_CHV - 1) - (SUBMAT_SIZE * (CFU_PAR_LEVEL - (i + 1) ) ) ) downto ( MAX_CHV - (SUBMAT_SIZE * (CFU_PAR_LEVEL - i) ) ) ),
+            -- change this according to type 0 to 16)
+            input0 => input(CFU_PAR_LEVEL - 1 downto 0),
+            input1 => input(2 * CFU_PAR_LEVEL - 1 downto CFU_PAR_LEVEL),
+            -- input0 => input( ( (MAX_CHV / 2 - 1) - (SUBMAT_SIZE * (CFU_PAR_LEVEL - (i + 1) ) ) ) downto ( MAX_CHV / 2 - (SUBMAT_SIZE * (CFU_PAR_LEVEL - i) ) ) ),      --- calc
+            -- input1 => input( ( (MAX_CHV - 1) - (SUBMAT_SIZE * (CFU_PAR_LEVEL - (i + 1) ) ) ) downto ( MAX_CHV - (SUBMAT_SIZE * (CFU_PAR_LEVEL - i) ) ) ),
             sel => mux_input_halves,
             output => mux_app_input_in_newcode(i)
         );
@@ -196,7 +201,8 @@ begin
         addr_msg_ram_read => addr_msg_ram_read,
         addr_msg_ram_write => addr_msg_ram_write,
         app_in => cnb_input(j),
-        app_out => cnb_output(j)
+        app_out => cnb_output(j),
+        hard_bits_cnb => hard_bits_cnb(i)
         );
     end generate gen_cnbs;
 
@@ -243,12 +249,14 @@ begin
     -- output ordering
     --------------------------------------------------------------------------------------
     output_module_ins: output_module port map (
+        rst => rst,
         clk => clk,
         code_rate => code_rate,
         valid => valid_output,
-        input => app,
+        input => hard_bits_cnb,
         output => output
     );
+
 
 
 end architecture circuit;

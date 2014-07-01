@@ -79,7 +79,10 @@ package pkg_types is
      -- iteration type
     subtype t_iter is std_logic_vector(BW_MAX_ITER - 1 downto 0);
 
-   
+    -- hard bits per cnb (as well as cn)
+    type t_hard_decision_cnb is array (CFU_PAR_LEVEL - 1 downto 0) of std_logic; 
+ 
+
     -- APP ram
     -------------
     -- app ram addr
@@ -89,6 +92,7 @@ package pkg_types is
     -- MUX at output of APP 
     -----------------------
     type t_mux_out_app is array (CFU_PAR_LEVEL - 1 downto 0) of std_logic_vector(1 downto 0);
+
 
     -- Controller types
     ----------------------
