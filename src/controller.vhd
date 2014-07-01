@@ -39,7 +39,7 @@ entity controller is
              msg_rd_addr: out t_msg_ram_addr;
              msg_wr_addr: out t_msg_ram_addr;
              shift: out t_shift_contr;
-             mux_input_halves: std_logic;           -- mux choosing input codeword halves
+             mux_input_halves: out std_logic;           -- mux choosing input codeword halves
              mux_input_app: out std_logic;        -- mux at input of app rams used for storing (0 = CNB, 1 = new code)
              mux_output_app: out t_mux_out_app                    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
          );
@@ -180,6 +180,8 @@ begin
         -- finish iterating
         variable finish: boolean := false;
         variable next_iter_last_iter: boolean := false;
+        variable complete: boolean := false;
+        
         
         
     begin
@@ -230,6 +232,7 @@ begin
 
                 iter_int := 0;
                 finish := false;
+                complete := false;
                 iter <= std_logic_vector(to_unsigned(0, BW_MAX_ITER));
 
 
@@ -541,7 +544,9 @@ begin
                     ok_checks := ok_checks + val;
                 end loop;
 
-                -- if all parity checks are satisfied do one more whole iteration
+                --
+                -- if all parity checks are satisfied do one more whole iteration (EARLY TERMINATION)
+                --
                 if (ok_checks = matrix_rows * SUBMAT_SIZE) then
                     if (next_iter_last_iter = true) then
                         finish := true;
@@ -550,6 +555,16 @@ begin
                     end if;
                 end if;
 
+                --
+                -- NORMAL TERMINATION
+                --
+                if (last_iter = true and msg_row_wr = 15) then
+                    if (complete = true) then                   -- meaning that we reached 15 the second time after last_iter is true
+                        finish := true;
+                    else
+                        complete := true;
+                    end if;
+                end if;
 
                 --
                 -- inside CNB
@@ -562,15 +577,15 @@ begin
                 msg_row_rd := msg_row_rd + 1;
                 msg_row_wr := msg_row_wr + 1;
 
-                if (msg_row_rd = matrix_rows * 2) then
+                if (msg_row_rd = matrix_rows * 2) then          -- check if this actually happens in this state
                     msg_row_rd := 0;
                 end if;
-                if (msg_row_wr = matrix_rows * 2) then
+                if (msg_row_wr = matrix_rows * 2) then          -- check if this actually happens in this state
                     msg_row_wr := 0;
                 end if;
                 
 
-                -- reset ok checks only if we keep iterating else we need it to set "valid" signal
+                -- reset ok_checks only if we keep iterating else we need it to set "valid" signal
                 if (msg_row_wr = 0 and finish = false) then
                     ok_checks := 0;
                 end if;
@@ -585,9 +600,6 @@ begin
                 start_pos_next_half_sig <= start_pos_next_half;
                 ok_checks_sig <= ok_checks;
 
-                if (last_iter = true and msg_row_wr = 0) then
-                    --statement
-                end if;
 
                 --
                 -- next state 
@@ -662,7 +674,7 @@ begin
                 if (last_row = true) then
                     last_row := false;
                     iter_int := iter_int + 1;
-                    if (iter_int = 9) then
+                    if (iter_int = MAX_ITER - 1) then
                         last_iter := true;
                     end if;
                 end if;
@@ -740,7 +752,7 @@ begin
                 --
                 -- Parity checks handling
                 --
-                valid_output <= '1';
+                -- valid_output <= '1';
                 next_iter_last_iter := false;
                 last_iter := false;
 
