@@ -26,7 +26,6 @@ entity check_node_block is
         rst: in std_logic;
         clk: in std_logic;
         split: in std_logic;
-        ena_vc: in std_logic;
         ena_rp: in std_logic;
         ena_ct: in std_logic;
         ena_cf: in std_logic;
@@ -61,7 +60,7 @@ architecture circuit of check_node_block is
     signal check_node_in_reg_in: t_cn_message;     -- signal before register at input of CN
     signal check_node_in_reg_out: t_cn_message;     -- signal after register at input of CN
     signal check_node_out: t_cn_message;            -- signal output of CN
-    signal check_node_parity_out: std_logic; --signal output of CN (hard decision)
+    -- signal check_node_parity_out: std_logic; --signal output of CN (hard decision)
 
 
     -- signal used for typecasting iteration count
@@ -90,10 +89,12 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            app_in_reg <= app_in;
-            iter_int_reg <= iter_int;
-            addr_msg_ram_read_reg <= addr_msg_ram_read;
-            -- addr_msg_ram_write_reg <= addr_msg_ram_write;
+            if (ena_rp = '1') then
+                app_in_reg <= app_in;
+                iter_int_reg <= iter_int;
+                addr_msg_ram_read_reg <= addr_msg_ram_read;
+                addr_msg_ram_write_reg <= addr_msg_ram_write;
+            end if;
         end if;
     end process;
 
@@ -103,8 +104,9 @@ begin
     --------------------------------------------------------------------------------------
     msg_ram_ins: msg_ram port map (
         clk => clk,
-        -- wr_address => addr_msg_ram_write_reg,
-        wr_address => addr_msg_ram_write,
+        we => ena_cf,
+        wr_address => addr_msg_ram_write_reg,
+        -- wr_address => addr_msg_ram_write,
         rd_address => addr_msg_ram_read_reg,
         data_in => extrinsic_info_write,
         data_out => extrinsic_info_read
@@ -148,7 +150,9 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            check_node_in_reg_out <= check_node_in_reg_in;
+            if (ena_ct = '1') then
+                check_node_in_reg_out <= check_node_in_reg_in;
+            end if;
         end if;
     end process;
 
@@ -159,6 +163,7 @@ begin
     check_node_ins: check_node port map (
                                             rst => rst,
                                             clk => clk,
+                                            ena_cf => ena_cf,
                                             data_in => check_node_in_reg_out,
                                             split => split,
                                             data_out => check_node_out,
@@ -171,20 +176,33 @@ begin
     --------------------------------------------------------------------------------------
     extrinsic_info_write <= check_node_out;
        
+
     --------------------------------------------------------------------------------------
     -- FIFOs used to store the A priori info (Zn->m)
     --------------------------------------------------------------------------------------
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            for i in CFU_PAR_LEVEL-1 downto 0 loop
-                zetas_fifo_intermediate(i) <= zetas(i);
-                zetas_fifo_out(i) <= zetas_fifo_intermediate(i);
-            end loop;
+            if (ena_ct = '1') then
+                for i in CFU_PAR_LEVEL-1 downto 0 loop
+                    zetas_fifo_intermediate(i) <= zetas(i);
+                end loop;
+            end if;
         end if;
     end process;
 
+    process (clk)
+    begin
+        if (clk'event and clk = '1') then
+            if (ena_cf = '1') then
+                for i in CFU_PAR_LEVEL - 1 downto 0 loop
+                    zetas_fifo_out(i) <= zetas_fifo_intermediate(i);
+                end loop;
+            end if;
+        end if;
+    end process;
     
+
     --------------------------------------------------------------------------------------
     -- sum all the zetas with the output of check_node
     --------------------------------------------------------------------------------------

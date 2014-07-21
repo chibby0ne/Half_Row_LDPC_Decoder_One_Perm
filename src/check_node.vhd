@@ -7,27 +7,25 @@
 --! @author Philipp Schläfer
 --! @date   2013/02/02
 --!
-
+--------------------------------------------------------
 library ieee;
+library work;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-
-library work;
 use work.pkg_support_global.all;
 use work.pkg_param.all;
 use work.pkg_param_derived.all;
 use work.pkg_types.all;
 use work.pkg_support.all;
 use work.pkg_check_node.all;
--- use work.pkg_components.all;
-
-
+--------------------------------------------------------
 entity check_node is
 port(
 
 	-- INPUTS
 	rst           : in std_logic;
 	clk           : in std_logic;
+    ena_cf        : in std_logic;
 	data_in       : in t_cn_message;
 	split         : in std_logic; -- is the CN working in split mode
 
@@ -153,6 +151,7 @@ begin
 	-- Handling input 
     --------------------------------------------------------------------------------------
 
+    
 	-- split the sing from magnitude
 	gen_input_sign_mag : for i in 0 to (CFU_PAR_LEVEL - 1) generate
 		data_in_sign(i) <= data_in(i)(BW_EXTR - 1);
@@ -165,8 +164,10 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            data_in_mag_i <= data_in_mag;
-            data_in_sign_i <= data_in_sign;
+            if (ena_cf = '1') then
+                data_in_mag_i <= data_in_mag;
+                data_in_sign_i <= data_in_sign;
+            end if;
         end if;
     end process;
 
@@ -176,6 +177,7 @@ begin
 	-- Generate the minimums for the check node.
 	-- It is represented by the following sort and four_min tree.
     --------------------------------------------------------------------------------------
+
 
 	-- prepare magnitude of input data for the sorters
 	gen_sort_in : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
@@ -220,7 +222,9 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            four_min_s2_out_first_half_reg <= four_min_s2_out;
+            if (ena_cf = '1') then
+                four_min_s2_out_first_half_reg <= four_min_s2_out;
+            end if;
         end if;
     end process;
 
@@ -228,7 +232,7 @@ begin
     four_min_s3_in(0).min0 <= four_min_s2_out_first_half(0).min0;
     four_min_s3_in(0).min1 <= four_min_s2_out_first_half(0).min1;
     four_min_s3_in(0).min2 <= four_min_s2_out(0).min0;
-    four_min_s3_in(0).min3 <= four_min_s2_out(0).min0;
+    four_min_s3_in(0).min3 <= four_min_s2_out(0).min1;
 
     -- evaluate the third stage of the four min modules with the two halves rows info
     four_min_s3_out(0) <= four_min(four_min_s3_in(0));
@@ -257,7 +261,9 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            index_s2_first_half_reg <= index_s2(0);
+            if (ena_cf = '1') then
+                index_s2_first_half_reg <= index_s2(0);
+            end if;
         end if;
     end process;
 
@@ -292,7 +298,9 @@ begin
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            parity_s3_in_first_half_reg <= parity_s2;
+            if (ena_cf = '1') then
+                parity_s3_in_first_half_reg <= parity_s2;
+            end if;
         end if;
     end process;
 
@@ -322,76 +330,80 @@ begin
         variable count_var: integer range 0 to 2 := 0;
     begin
         if (clk'event and clk = '1') then
-            if (first = '0') then
-                first <= '1';
-            else
-                count_var := count_var + 1;
-                if (count_var = 2) then
-                    count_var := 0;
+            if (ena_cf = '1') then              -- clock gating (sync with input of cn. check drawing, try with ena_ct)
+                if (first = '0') then
+                    first <= '1';
+                else
+                    count_var := count_var + 1;
+                    if (count_var = 2) then
+                        count_var := 0;
+                    end if;
                 end if;
             end if;
         end if;
         count <= count_var;
     end process;
 
-    
+
     -------------------------------------------------------------------------------
     -- registers for storing the minimums and paritys of the row for the second half
     -------------------------------------------------------------------------------
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            parity_s3_out_reg <= parity_s3_out_mux;
-            index_s3_out_reg <= index_s3_out_mux;
-            four_min_s3_out_out_reg <= four_min_s3_out_out_mux;
+            if (ena_cf = '1') then                  -- clock gating 
+                parity_s3_out_reg <= parity_s3_out_mux;
+                index_s3_out_reg <= index_s3_out_mux;
+                four_min_s3_out_out_reg <= four_min_s3_out_out_mux;
+            end if;
         end if;
     end process;
 
 
-    
+
     --------------------------------------------------------------------------------------
     -- The following part handles the output.
     -- Depending on the operation mode, different result registers have to be used.
     --------------------------------------------------------------------------------------
-    
+
     -- leave this like this because split is not used so output will always be four_min_s3_out
-	pr_split : process(split_i2, parity_s2_i, parity_s3_out_mux, four_min_s2_out_i, four_min_s3_out_out_mux, index_s2_i, index_s3_out_mux)
-	begin
-		if split_i2 = '1' then
-			data_out_mag(0) <= four_min_s2_out_i(0);
-			parity_h <= parity_s2_i(0);
-			index_h <= index_s2_i(0);
-		else
-			data_out_mag(0) <= four_min_s3_out_out_mux(0);
-			parity_h <= parity_s3_out_mux;
-			index_h <= index_s3_out_mux;
-		end if;
-		if split_i2 = '1' then
-			data_out_mag(1) <= four_min_s2_out_i(0);
-			parity_l <= parity_s2_i(1);
-			index_l <= index_s2_i(1);
-		else
-			data_out_mag(1) <= four_min_s3_out_out_mux(0);
-			parity_l <= parity_s3_out_mux;
-			index_l <= index_s3_out_mux;
-		end if;
-	end process pr_split;
+    pr_split : process(split_i2, parity_s2_i, parity_s3_out_mux, four_min_s2_out_i, four_min_s3_out_out_mux, index_s2_i, index_s3_out_mux)
+    begin
+        if split_i2 = '1' then
+            data_out_mag(0) <= four_min_s2_out_i(0);
+            parity_h <= parity_s2_i(0);
+            index_h <= index_s2_i(0);
+        else
+            data_out_mag(0) <= four_min_s3_out_out_mux(0);
+            parity_h <= parity_s3_out_mux;
+            index_h <= index_s3_out_mux;
+        end if;
+        if split_i2 = '1' then
+            data_out_mag(1) <= four_min_s2_out_i(0);
+            parity_l <= parity_s2_i(1);
+            index_l <= index_s2_i(1);
+        else
+            data_out_mag(1) <= four_min_s3_out_out_mux(0);
+            parity_l <= parity_s3_out_mux;
+            index_l <= index_s3_out_mux;
+        end if;
+    end process pr_split;
 
     -- apply esf factor to minimums
-	data_out_mag_scaled(0).min0 <= esf_scale(data_out_mag(0).min0);
-	data_out_mag_scaled(0).min1 <= esf_scale(data_out_mag(0).min1);
-	data_out_mag_scaled(1).min0 <= esf_scale(data_out_mag(1).min0);
-	data_out_mag_scaled(1).min1 <= esf_scale(data_out_mag(1).min1);
+    data_out_mag_scaled(0).min0 <= esf_scale(data_out_mag(0).min0);
+    data_out_mag_scaled(0).min1 <= esf_scale(data_out_mag(0).min1);
+    data_out_mag_scaled(1).min0 <= esf_scale(data_out_mag(1).min0);
+    data_out_mag_scaled(1).min1 <= esf_scale(data_out_mag(1).min1);
 
-	-- Generate a positive and a negative tc variant
-	data_out_neg_tc(0).min0 <= twos_comp_neg(data_out_mag_scaled(0).min0);
-	data_out_neg_tc(0).min1 <= twos_comp_neg(data_out_mag_scaled(0).min1);
-	data_out_neg_tc(1).min0 <= twos_comp_neg(data_out_mag_scaled(1).min0);
-	data_out_neg_tc(1).min1 <= twos_comp_neg(data_out_mag_scaled(1).min1);
-	data_out_pos_tc(0).min0 <= signed('0' & data_out_mag_scaled(0).min0);
-	data_out_pos_tc(0).min1 <= signed('0' & data_out_mag_scaled(0).min1);
-	data_out_pos_tc(1).min0 <= signed('0' & data_out_mag_scaled(1).min0);
-	data_out_pos_tc(1).min1 <= signed('0' & data_out_mag_scaled(1).min1);
+    -- Generate a positive and a negative tc variant
+    data_out_neg_tc(0).min0 <= twos_comp_neg(data_out_mag_scaled(0).min0);
+    data_out_neg_tc(0).min1 <= twos_comp_neg(data_out_mag_scaled(0).min1);
+    data_out_neg_tc(1).min0 <= twos_comp_neg(data_out_mag_scaled(1).min0);
+    data_out_neg_tc(1).min1 <= twos_comp_neg(data_out_mag_scaled(1).min1);
+    data_out_pos_tc(0).min0 <= signed('0' & data_out_mag_scaled(0).min0);
+    data_out_pos_tc(0).min1 <= signed('0' & data_out_mag_scaled(0).min1);
+    data_out_pos_tc(1).min0 <= signed('0' & data_out_mag_scaled(1).min0);
+    data_out_pos_tc(1).min1 <= signed('0' & data_out_mag_scaled(1).min1);
 
 
     -- Upper tree

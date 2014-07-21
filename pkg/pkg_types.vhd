@@ -42,6 +42,9 @@ package pkg_types is
     -- shift value
     subtype t_shift_perm_net is std_logic_vector(BW_SHIFT_VEC - 1 downto 0);
     
+    -- message ram type
+    --------------------------------------
+    type t_msg_ram is array (R050_ROWS - 1 downto 0, CFU_PAR_LEVEL - 1 downto 0) of signed(BW_EXTR - 1 downto 0);
     
 
 	-- Variable node types
@@ -80,7 +83,7 @@ package pkg_types is
     subtype t_iter is std_logic_vector(BW_MAX_ITER - 1 downto 0);
 
     -- hard bits per cnb (as well as cn)
-    type t_hard_decision_cnb is array (CFU_PAR_LEVEL - 1 downto 0) of std_logic; 
+    type t_hard_decision_app is array (SUBMAT_SIZE - 1 downto 0) of std_logic; 
  
 
     -- APP ram
@@ -108,12 +111,17 @@ package pkg_types is
     --- 8 permutations networks
     type t_shift_contr is array (CFU_PAR_LEVEL - 1 downto 0) of t_shift_perm_net;
 
+
     -- Top Level
     --------------
 
     -- 8 of each app message
-    type t_message_app_full_codeword is array (2 * CFU_PAR_LEVEL - 1 downto 0) of t_app_messages;
-    type t_message_app_half_codeword is array (CFU_PAR_LEVEL - 1 downto 0) of t_app_messages;
+    type t_app_message_full_codeword is array (2 * CFU_PAR_LEVEL - 1 downto 0) of t_app_messages;
+    type t_app_message_half_codeword is array (CFU_PAR_LEVEL - 1 downto 0) of t_app_messages;
+
+    type t_hard_decision_full_codeword is array (2 * CFU_PAR_LEVEL - 1 downto 0) of t_hard_decision_app;
+    type t_hard_decision_half_codeword is array (CFU_PAR_LEVEL - 1 downto 0) of t_hard_decision_app;
+
 
     -- 42 of each cnb message
     type t_cnb_message_tc_top_level is array (SUBMAT_SIZE - 1 downto 0) of t_cnb_message_tc;

@@ -33,6 +33,7 @@ entity controller is
              ena_ct: out std_logic;
              ena_cf: out std_logic;
              valid_output: out std_logic;
+             finish_iter: out std_logic;
              iter: out t_iter;
              app_rd_addr: out std_logic;
              app_wr_addr: out std_logic;
@@ -40,8 +41,8 @@ entity controller is
              msg_wr_addr: out t_msg_ram_addr;
              shift: out t_shift_contr;
              mux_input_halves: out std_logic;           -- mux choosing input codeword halves
-             mux_input_app: out std_logic;        -- mux at input of app rams used for storing (0 = CNB, 1 = new code)
-             mux_output_app: out t_mux_out_app                    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
+             mux_input_app: out std_logic;              -- mux at input of app rams used for storing (0 = CNB, 1 = new code)
+             mux_output_app: out t_mux_out_app          -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
          );
 end entity controller;
 --------------------------------------------------------
@@ -234,6 +235,7 @@ begin
                 finish := false;
                 complete := false;
                 iter <= std_logic_vector(to_unsigned(0, BW_MAX_ITER));
+                finish_iter <= '0';
 
 
                 --
@@ -271,7 +273,7 @@ begin
                 mux_input_app <= '1';                               -- new codeword
                 app_rd_addr <= '0';
                 app_wr_addr <= '0';
-                mux_input_halves <= '0';
+                mux_input_halves <= '1';                            -- start with MS half
 
 
                 --
@@ -346,7 +348,7 @@ begin
                 mux_input_app <= '1';                               -- new codeword
                 app_rd_addr <= '1';
                 app_wr_addr <= '1';
-                mux_input_halves <= '1';
+                mux_input_halves <= '0';
 
 
                 --
@@ -525,16 +527,10 @@ begin
                     last_row := true;
                 end if;
 
-                -- if we are in the last row and this is our last iteration then we're finished iterating with this codeword
-                -- if (msg_row_wr = matrix_rows * 2 - 1 and last_iter = true) then
-                --     finish := true;
-                -- end if;
-
-
                 --
                 -- Parity checks handling
                 --
-                -- parity_out out of CN, which happens every 2 cycles in CT stage in the pipeline, we add and accumulate the parity_check
+                -- parity_out out of CN, which happens every 2 cycles in CF stage in the pipeline, we add and accumulate the parity_check
                 for i in 0 to SUBMAT_SIZE - 1 loop
                     if (parity_out(i) = '0') then
                         val := 1;
@@ -559,7 +555,7 @@ begin
                 -- NORMAL TERMINATION
                 --
                 if (last_iter = true and msg_row_wr = 15) then
-                    if (complete = true) then                   -- meaning that we reached 15 the second time after last_iter is true
+                    if (complete = true) then                   -- meaning that we reached 15 the second time after last_iter is true (first time is still from previous iter)
                         finish := true;
                     else
                         complete := true;
@@ -577,11 +573,16 @@ begin
                 msg_row_rd := msg_row_rd + 1;
                 msg_row_wr := msg_row_wr + 1;
 
+                if (msg_row_wr = 2) then
+                    finish_iter <= '0';
+                end if;
+
                 if (msg_row_rd = matrix_rows * 2) then          -- check if this actually happens in this state
                     msg_row_rd := 0;
                 end if;
                 if (msg_row_wr = matrix_rows * 2) then          -- check if this actually happens in this state
                     msg_row_wr := 0;
+                    finish_iter <= '1';
                 end if;
                 
 
@@ -605,6 +606,7 @@ begin
                 -- next state 
                 --
                 if (finish) then
+                    finish_iter <= '1';
                     if (ok_checks = matrix_rows * SUBMAT_SIZE) then
                        valid_output <= '1';
                     end if;
@@ -710,6 +712,7 @@ begin
             -- we have to let the pipeline flush itself out
             --------------------------------------------------------------------------------------
             when FINISHING_ITER =>      -- when we have either reached maximum number of iterations or all pchks satisfied
+                                        -- here we sotre the second half in app
 
 
                 --
@@ -755,6 +758,7 @@ begin
                 -- valid_output <= '1';
                 next_iter_last_iter := false;
                 last_iter := false;
+                finish_iter <= '1';
 
 
                 --

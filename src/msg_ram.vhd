@@ -22,6 +22,7 @@ use work.pkg_types.all;
 entity msg_ram is
     port (
         clk: in std_logic;
+        we: in std_logic;
         wr_address: in t_msg_ram_addr;
         rd_address: in t_msg_ram_addr;
         data_in: in t_cn_message;
@@ -32,13 +33,7 @@ architecture circuit of msg_ram is
 
     -- signal declarations
     type memory is array (0 to MSG_RAM_DEPTH - 1) of t_cn_message;    -- 16 max num of layers
-    signal myram: memory := (
-    -- this initialization was added to test CNB functionality for iter != 0
-    -- 0 => (0 => to_signed(13, BW_EXTR), others => to_signed(9, BW_EXTR)),
-    -- 1 => (others => to_signed(9, BW_EXTR)),
-    -- 2 => (0 => to_signed(-13, BW_EXTR), others => to_signed(-9, BW_EXTR)),
-    -- 3 => (others => to_signed(-9, BW_EXTR)),
-    others => (others => (others => '0')));
+    signal myram: memory := (others => (others => (others => '0')));
 
     signal wr_address_int: integer range 0 to 2**BW_MSG_RAM - 1;
     signal rd_address_int: integer range 0 to 2**BW_MSG_RAM - 1;
@@ -55,12 +50,14 @@ begin
 
 
     --------------------------------------------------------------------------------------
-    -- registered input and output
+    -- registered input and unregistered output
     --------------------------------------------------------------------------------------
     process (clk)
     begin
         if (clk'event and clk = '1') then
-            myram(wr_address_int) <= data_in;
+            if (we = '1') then
+                myram(wr_address_int) <= data_in;
+            end if;
         end if;
     end process;
     data_out <= myram(rd_address_int);
