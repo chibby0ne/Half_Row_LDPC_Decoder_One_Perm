@@ -273,7 +273,7 @@ begin
                 mux_input_app <= '1';                               -- new codeword
                 app_rd_addr <= '0';
                 app_wr_addr <= '0';
-                mux_input_halves <= '1';                            -- start with MS half
+                mux_input_halves <= '0';                            -- start with MS half
 
 
                 --
@@ -348,7 +348,7 @@ begin
                 mux_input_app <= '1';                               -- new codeword
                 app_rd_addr <= '1';
                 app_wr_addr <= '1';
-                mux_input_halves <= '0';
+                mux_input_halves <= '1';
 
 
                 --

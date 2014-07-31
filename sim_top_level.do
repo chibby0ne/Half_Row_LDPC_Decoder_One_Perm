@@ -12,7 +12,7 @@ add wave -decimal sim:/dut/mux_app_output_in_mux
 add wave -decimal sim:/dut/mux_app_output_in_dummy
 add wave -unsigned sim:/dut/mux_output_app
 add wave -decimal sim:/dut/mux_app_output_out
-add wave -decimal sim:/dut/gen_app_ram(7)/app_ram_ins/myram
+add wave -decimal sim:/dut/gen_app_ram(0)/app_ram_ins/myram
 add wave -decimal sim:/dut/perm_input
 add wave -unsigned sim:/dut/shift
 add wave -decimal sim:/dut/perm_output
@@ -20,19 +20,19 @@ add wave -decimal sim:/dut/cnb_input
 add wave -decimal sim:/dut/cnb_output
 
 add wave -unsigned sim:/dut/controller_ins/pr_state
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/app_in_reg
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/zetas
-add wave -unsigned sim:/dut/gen_cnbs(41)/cnbs_ins/addr_msg_ram_read_reg
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/extrinsic_info_read
-add wave -unsigned sim:/dut/gen_cnbs(41)/cnbs_ins/addr_msg_ram_write
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/extrinsic_info_write
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/check_node_in_reg_out
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/check_node_out
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/zetas_fifo_out
-add wave -decimal sim:/dut/gen_cnbs(41)/cnbs_ins/app_out
-add wave -unsigned sim:/dut/gen_cnbs(41)/cnbs_ins/check_node_ins/four_min_s3_out_out_mux
-add wave -unsigned sim:/dut/gen_cnbs(41)/cnbs_ins/check_node_ins/data_in_mag_i
-add wave -unsigned sim:/dut/gen_cnbs(41)/cnbs_ins/check_node_ins/count
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/app_in_reg
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/zetas
+add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/addr_msg_ram_read_reg
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/extrinsic_info_read
+add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/addr_msg_ram_write
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/extrinsic_info_write
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/check_node_in_reg_out
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/check_node_out
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/zetas_fifo_out
+add wave -decimal sim:/dut/gen_cnbs(0)/cnbs_ins/app_out
+add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/check_node_ins/four_min_s3_out_out_mux
+add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/check_node_ins/data_in_mag_i
+add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/check_node_ins/count
 
 
 add wave -decimal sim:/dut/cnb_output

@@ -93,8 +93,8 @@ begin
         variable val: integer;
     begin
         if (not endfile(fin)) then
-            for i in 2 * CFU_PAR_LEVEL - 1 downto 0 loop
-                for j in SUBMAT_SIZE - 1 downto 0 loop
+            for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
+                for j in 0 to SUBMAT_SIZE - 1 loop
                     readline(fin, l);
                     read(l, val);
                     input_tb(i)(j) <= to_signed(val, BW_APP);
