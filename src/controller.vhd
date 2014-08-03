@@ -28,7 +28,7 @@ entity controller is
              parity_out: in t_parity_out_contr;
 
         -- outputs
-             ena_vc: out std_logic;
+             ena_vc: out std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
              ena_rp: out std_logic;
              ena_ct: out std_logic;
              ena_cf: out std_logic;
@@ -165,6 +165,9 @@ begin
         -- aux variables
         variable val: integer range 0 to 1 := 0;
         
+        variable ena_vc_first: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
+        variable ena_vc_second: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
+        
         
         
     begin
@@ -183,7 +186,7 @@ begin
                 ena_rp <= '0';
                 ena_ct <= '0';
                 ena_cf <= '0';
-                ena_vc <= '0';
+                ena_vc <= (others => '0');
 
 
                 -- first time
@@ -249,7 +252,7 @@ begin
 
                 if (first_time = true) then
 
-                    ena_vc <= '0';
+                    ena_vc <= (others => '0');                             -- ENA_VC for the the first time it is in this state (not writing to APP)
                     sel_mux_input_halves <= '0';                            -- start with MS half
 
                     -- matrix's rows handling
@@ -264,7 +267,11 @@ begin
 
                 else
 
-                    ena_vc <= '1';
+                    -- here should use the enables valid for the SECOND state
+                    for i in 0 to CFU_PAR_LEVEL - 1 loop
+                        ena_vc(i) <= ena_vc_second(i);
+                    end loop;
+
                     app_rd_addr <= '0';
                     app_wr_addr <= '1';
 
@@ -307,7 +314,7 @@ begin
 
 
                 --
-                -- max_app_val or real app val + real shift 
+                -- max_app_val or real app val + real shift AND ena_vc
                 --
                 -- first half
                 vector_addr := cng_counter * matrix_max_check_degree;       -- base address for the matrix
@@ -320,13 +327,16 @@ begin
                             else
                                 sel_mux_output_app(i) <= std_logic_vector(to_unsigned(0, sel_mux_output_app(0)'length));            
                             end if;
+                            ena_vc_first(i) := '1';
                             shift(i) <= std_logic_vector(to_unsigned(matrix_shift(index_row + vector_addr), shift(0)'length));
                             index_row := index_row + 1;
                         else
+                            ena_vc_first(i) := '0';
                             sel_mux_output_app(i) <= std_logic_vector(to_unsigned(1, sel_mux_output_app(0)'length));         -- put max_extr_msg
                             shift(i) <= std_logic_vector(to_unsigned(0, shift(0)'length));                  -- it is indifferent how much we shift 
                         end if;
                     else
+                        ena_vc_first(i) := '0';
                         sel_mux_output_app(i) <= std_logic_vector(to_unsigned(1, sel_mux_output_app(0)'length));         -- put max_extr_msg
                         shift(i) <= std_logic_vector(to_unsigned(0, shift(0)'length));                  -- it is indifferent how much we shift 
                     end if;
@@ -384,7 +394,7 @@ begin
                 ena_rp <= '1';
                 ena_ct <= '1';
                 ena_cf <= '0';
-                ena_vc <= '0';
+                ena_vc <= (others => '0');
 
 
                 --
@@ -438,9 +448,11 @@ begin
                             else
                                 sel_mux_output_app(j) <= std_logic_vector(to_unsigned(0, sel_mux_output_app(0)'length));                -- else, get it from cnb
                             end if;
+                            ena_vc_second(j) := '1';
                             shift(j) <= std_logic_vector(to_unsigned(matrix_shift(index_row + vector_addr), shift(0)'length));
                             index_row := index_row + 1;
                         else 
+                            ena_vc_second(j) := '0';
                             sel_mux_output_app(j) <= std_logic_vector(to_unsigned(1, sel_mux_output_app(0)'length));            
                             shift(j) <= std_logic_vector(to_unsigned(0, shift(0)'length));      
                         end if;
@@ -486,7 +498,7 @@ begin
                 ena_rp <= '0';
                 ena_ct <= '1';
                 ena_cf <= '1';
-                ena_vc <= '0';
+                ena_vc <= (others => '0');
 
 
                 --
@@ -540,8 +552,14 @@ begin
                 ena_rp <= '0';
                 ena_ct <= '0';
                 ena_cf <= '1';
-                ena_vc <= '1';
 
+                -- here should use the enables valid for the FIRST state
+                for i in 0 to CFU_PAR_LEVEL - 1 loop
+                    ena_vc(i) <= ena_vc_first(i);
+                end loop;
+
+
+                
 
                 --
                 -- APP RAM
@@ -588,7 +606,7 @@ begin
                 ena_rp <= '0';
                 ena_ct <= '0';
                 ena_cf <= '0';
-                ena_vc <= '0';
+                ena_vc <= (others => '0');
 
                 -- APP ram
                 app_rd_addr <= '1';
