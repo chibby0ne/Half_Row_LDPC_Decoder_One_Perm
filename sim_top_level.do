@@ -1,17 +1,14 @@
 vsim work.top_level_tb
 add wave -unsigned sim:/clk_tb
 add wave -decimal sim:/input_tb
-add wave -decimal sim:/dut/mux_app_input_in_newcode
-add wave -unsigned sim:/dut/mux_input_halves
-add wave -decimal sim:/dut/mux_app_input_in_cnb
-add wave -unsigned sim:/dut/mux_input_app
-add wave -decimal sim:/dut/mux_output_in_app 
+add wave -decimal sim:/dut/input_newcode
+add wave -unsigned sim:/dut/sel_mux_input_halves
+add wave -decimal sim:/dut/cnb_output_in_app
 add wave -decimal sim:/dut/app_in 
 add wave -decimal sim:/dut/app_out 
-add wave -decimal sim:/dut/mux_app_output_in_mux
-add wave -decimal sim:/dut/mux_app_output_in_dummy
-add wave -unsigned sim:/dut/mux_output_app
-add wave -decimal sim:/dut/mux_app_output_out
+add wave -decimal sim:/dut/dummy_values
+add wave -unsigned sim:/dut/sel_mux_output_app
+add wave -decimal sim:/dut/mux_output_app_out
 add wave -decimal sim:/dut/gen_app_ram(0)/app_ram_ins/myram
 add wave -decimal sim:/dut/perm_input
 add wave -unsigned sim:/dut/shift
@@ -36,7 +33,7 @@ add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/check_node_ins/count
 
 
 add wave -decimal sim:/dut/cnb_output
-add wave -decimal sim:/dut/mux_app_input_in_cnb
+add wave -decimal sim:/dut/cnb_output_in_app
 
 add wave -unsigned sim:/dut/ena_vc
 add wave -unsigned sim:/dut/ena_rp
@@ -51,7 +48,8 @@ add wave -unsigned sim:/dut/msg_wr_addr
 add wave -unsigned sim:/dut/iter
 
 add wave -unsigned sim:/valid_output_tb
-add wave -unsigned sim:/dut/hard_bits_cnb
+add wave -unsigned sim:/dut/output_in
+add wave -unsigned sim:/dut/parity_out
 add wave -unsigned sim:/output_tb
 
 run -all

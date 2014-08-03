@@ -106,7 +106,8 @@ package pkg_types is
     type t_msg_addr_contr is array (SUBMAT_SIZE - 1 downto 0) of t_msg_ram_addr;
 
     -- 42 CNBs
-    type t_parity_out_contr is array (SUBMAT_SIZE - 1 downto 0) of std_logic;
+    type t_parity_cnb is array (CFU_PAR_LEVEL - 1 downto 0) of std_logic;
+    type t_parity_out_contr is array (SUBMAT_SIZE - 1 downto 0) of t_parity_cnb;
 
     --- 8 permutations networks
     type t_shift_contr is array (CFU_PAR_LEVEL - 1 downto 0) of t_shift_perm_net;

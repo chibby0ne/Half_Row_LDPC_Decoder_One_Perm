@@ -35,8 +35,7 @@ entity check_node_block is
         app_in: in t_cnb_message_tc;   -- input type has to be of CFU_PAR_LEVEL because that's the number of edges that CFU handle
         
     -- outputs
-        app_out: out t_cnb_message_tc;  -- output type should be the same as input
-        check_node_parity_out: out std_logic
+        app_out: out t_cnb_message_tc  -- output type should be the same as input
 ); 
 end entity check_node_block;
 
@@ -60,7 +59,6 @@ architecture circuit of check_node_block is
     signal check_node_in_reg_in: t_cn_message;     -- signal before register at input of CN
     signal check_node_in_reg_out: t_cn_message;     -- signal after register at input of CN
     signal check_node_out: t_cn_message;            -- signal output of CN
-    -- signal check_node_parity_out: std_logic; --signal output of CN (hard decision)
 
 
     -- signal used for typecasting iteration count
@@ -166,8 +164,7 @@ begin
                                             ena_cf => ena_cf,
                                             data_in => check_node_in_reg_out,
                                             split => split,
-                                            data_out => check_node_out,
-                                            parity_out => check_node_parity_out
+                                            data_out => check_node_out
                                         );
     
     

@@ -17,7 +17,6 @@ use work.pkg_param.all;
 use work.pkg_types.all;
 --------------------------------------------------------
 entity output_module is
---generic declarations
     port (
         rst: in std_logic;
         clk: in std_logic;
@@ -62,11 +61,10 @@ begin
         elsif (clk'event and clk = '1') then
             if (finish_iter = '1') then
                 if (count = 0) then
-                    input_reg(1) := input;
-
+                    input_reg(0) := input;
                     count := count + 1;
                 else
-                    input_reg(0) := input;
+                    input_reg(1) := input;
                     count := 0;
 
                     
@@ -74,11 +72,11 @@ begin
                     -- i'm going to start decoding from the MSB half
                     -- we need to shift the leftmost shift in the matrix to the MS group APP (meaning app 15)
 
-                    for i in 1 downto 0 loop                            -- for all half
-                        for j in CFU_PAR_LEVEL - 1 downto 0 loop        -- for all APPs
-                            for k in SUBMAT_SIZE - 1 downto 0 loop      -- for all 42 elements 
+                    for i in 0 to 1 loop                            -- for all half
+                        for j in 0 to CFU_PAR_LEVEL - 1  loop        -- for all APPs
+                            for k in 0 to SUBMAT_SIZE - 1 loop      -- for all 42 elements 
                                 base := i * CFU_PAR_LEVEL + j;
-                                val := (k - shift((2 * CFU_PAR_LEVEL - 1) - base)) mod SUBMAT_SIZE;     -- shift starts from 0 to 16 meaning that the leftmost is 0 that's why this index is so complicated
+                                val := (shift(base) + k) mod SUBMAT_SIZE;     -- shift starts from 0 to 16 meaning that the leftmost is 0 that's why this index is so complicated
                                 output(base)(k) <= input_reg(i)(j)(val);
                             end loop;
                         end loop;

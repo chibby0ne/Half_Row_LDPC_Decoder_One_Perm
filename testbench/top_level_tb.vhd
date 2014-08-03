@@ -52,7 +52,10 @@ architecture circuit of top_level_tb is
     signal valid_output_tb: std_logic := '0';
     signal output_tb: t_hard_decision_full_codeword;
     file fin: text open read_mode is "input_decoder_oneword.txt";
-    file fout: text open read_mode is "output_decoder_oneword.txt";
+    file fout: text open read_mode is "output_decoder_oneword_column.txt";
+    signal cnb_input_sig: t_cnb_message_tc_top_level;
+    
+    
     
     
 begin
@@ -74,6 +77,7 @@ begin
     -- stimuli generation
     --------------------------------------------------------------------------------------
 
+    cnb_input_sig <= top_level.cnb_input;
     
     -- clk
     clk_tb <= not clk_tb after PERIOD / 2;
@@ -113,23 +117,26 @@ begin
     -- output comparison
     --------------------------------------------------------------------------------------
 
-    -- process
-    --     variable l: line;
-    --     variable val: integer := 0;
-    -- begin
-    --     if (not endfile(fout)) then
-    --         wait for TIME;
-    --         for i in MAX_CHV - 1 downto 0 loop
-    --             readline(fout, l);
-    --             read(l, val);
-    --             assert output_tb(i) = std_logic(val)
-    --             report "error. output( " & integer'image(i) & ") should be = " & integer'image(val) & "but is = " & integer'image(to_integer(output(i)))
-    --             severity failure;
-    --         end loop;
-    --     else
-    --         assert false
-    --         report "no errors"
-    --         severity failure;
-    --     end if;
-    -- end process;
+    process
+        variable l: line;
+        variable val: integer := 0;
+    begin
+            wait for PD;
+            if (not endfile(fout)) then
+                wait for PERIOD * 35;
+                for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
+                    for j in 0 to SUBMAT_SIZE - 1 loop
+                        readline(fout, l);
+                        read(l, val);
+                        assert to_integer(unsigned'("" & output_tb(i)(j))) = val
+                        report "output(" & integer'image(i) & ")(" & integer'image(j) & ") should be = " & integer'image(val) & " but is = " & integer'image(to_integer(unsigned'("" & output_tb(i)(j))))
+                        severity failure;
+                    end loop;
+                end loop;
+            else
+                assert false
+                report "no errors"
+                severity failure;
+            end if;
+    end process;
 end architecture circuit;

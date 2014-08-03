@@ -30,8 +30,7 @@ port(
 	split         : in std_logic; -- is the CN working in split mode
 
 	-- OUTPUTS
-	data_out      : out t_cn_message;
-	parity_out    : out std_logic
+	data_out      : out t_cn_message
 );
 end check_node;
 
@@ -309,7 +308,7 @@ begin
 
 	-- Use parity s2 as output even if we are not in split mode.
 	-- This is ok for now, but may be changed later.
-	parity_out <= parity_s3;
+	-- parity_out <= parity_s3;
 
     
 

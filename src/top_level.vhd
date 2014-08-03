@@ -33,19 +33,15 @@ architecture circuit of top_level is
 
 
     -- signal used in mux selecting input half
-    signal mux_app_input_in_newcode: t_app_message_half_codeword;
+    signal input_newcode: t_app_message_half_codeword;
 
     --signals used in mux selecting input of app from inputs or from CNBs
-    signal mux_app_input_in_cnb: t_app_message_half_codeword;
+    signal cnb_output_in_app: t_app_message_half_codeword;
 
     -- signals used in mux at output of app, used for selecting where does CNBs input come from: dummy, inputs or apps
-    signal mux_app_output_in_mux: t_app_message_half_codeword; 
-    signal mux_app_output_in_dummy: t_app_messages := (others => to_signed(31, BW_APP));        -- 31 is msg extr msg
-    -- signal mux_app_output_in_newcode: t_app_message_half_codeword;
-    signal mux_app_output_out: t_app_message_half_codeword; 
+    signal dummy_values: t_app_messages := (others => to_signed(31, BW_APP));        -- 31 is msg extr msg
+    signal mux_output_app_out: t_app_message_half_codeword; 
     
-    -- signals used in app
-    signal mux_output_in_app: t_app_message_half_codeword;
     
     signal app_in: t_app_message_half_codeword ;
     signal app_out: t_app_message_half_codeword ;
@@ -58,9 +54,13 @@ architecture circuit of top_level is
     signal cnb_input: t_cnb_message_tc_top_level;
     signal cnb_output: t_cnb_message_tc_top_level;
 
-    
     -- signal used for hard bits
     signal hard_bits_cnb: t_hard_decision_half_codeword;
+
+    
+    -- signal for input of output module
+    signal output_in: t_hard_decision_half_codeword;
+    
     
     
     -- singals used by controller
@@ -76,9 +76,8 @@ architecture circuit of top_level is
     signal msg_rd_addr: t_msg_ram_addr;    
     signal msg_wr_addr: t_msg_ram_addr;
     signal shift: t_shift_contr;
-    signal mux_input_halves: std_logic;     -- selects which half is being stored 
-    signal mux_input_app: std_logic;        -- selects where the input of app comes from: inputs or CNBs
-    signal mux_output_app: t_mux_out_app;   -- selects which value to use as CNB input: dummy, from inputs, or from app
+    signal sel_mux_input_halves: std_logic;     -- selects which half is being stored 
+    signal sel_mux_output_app: t_mux_out_app;   -- selects which value to use as CNB input: dummy, from inputs, or from app
 
     signal split: std_logic := '0';
     
@@ -93,31 +92,18 @@ begin
     gen_mux_input_halves: for i in 0 to CFU_PAR_LEVEL - 1 generate
         mux_input_halves_ins: mux2_1 port map (
             input0 => input(i),            
-            input1 => input(CFU_PAR_LEVEL + i),         -- change this or in controller. get the MS half first.
-            sel => mux_input_halves,
-            output => mux_app_input_in_newcode(i)
+            input1 => input(CFU_PAR_LEVEL + i),         
+            sel => sel_mux_input_halves,
+            output => input_newcode(i)
         );
     end generate gen_mux_input_halves;
     
 
     --------------------------------------------------------------------------------------
-    -- muxes at input of apps instantiations
-    --------------------------------------------------------------------------------------
-    gen_mux_input_app: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        mux_input_app_ins: mux2_1 port map (
-            input0 => mux_app_input_in_cnb(i),
-            input1 => mux_app_input_in_newcode(i),
-            sel => mux_input_app,
-            output => mux_output_in_app(i)
-        );
-    end generate gen_mux_input_app;
-
-
-    --------------------------------------------------------------------------------------
     -- connection between muxes at input of app and apps
     --------------------------------------------------------------------------------------
     gen_mux_input_app_conex: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        app_in(i)  <= mux_output_in_app(i);
+        app_in(i)  <= cnb_output_in_app(i);
     end generate gen_mux_input_app_conex;
 
 
@@ -137,32 +123,33 @@ begin
 
 
     --------------------------------------------------------------------------------------
-    -- connection between apps and muxes at output of apps 
-    --------------------------------------------------------------------------------------
-    gen_app_out_conex: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        mux_app_output_in_mux(i) <= app_out(i);
-    end generate gen_app_out_conex;
-
-
-    --------------------------------------------------------------------------------------
     -- muxes at output of apps instantiations
     --------------------------------------------------------------------------------------
     gen_mux_output_app_ins: for i in 0 to CFU_PAR_LEVEL - 1 generate
         mux3_1ins: mux3_1 port map (
-            input0 => mux_app_output_in_mux(i),
-            input1 => mux_app_output_in_dummy,
-            input2 => mux_app_input_in_newcode(i),
-            sel => mux_output_app(i),                     -- because 0th is MS and matrix_addr starts from 0 onward
-            output => mux_app_output_out(i)
+            input0 => app_out(i),
+            input1 => dummy_values,
+            input2 => input_newcode(i),
+            sel => sel_mux_output_app(i),                     -- because 0th is MS and matrix_addr starts from 0 onward
+            output => mux_output_app_out(i)
         );
     end generate gen_mux_output_app_ins;
     
+    --------------------------------------------------------------------------------------
+    -- input to output module
+    --------------------------------------------------------------------------------------
+    gen_input_output_module: for i in 0 to CFU_PAR_LEVEL - 1 generate
+        gen_input_output_module_detail: for j in 0 to SUBMAT_SIZE - 1 generate
+            output_in(i)(j) <= mux_output_app_out(i)(j)(BW_APP - 1);
+        end generate gen_input_output_module_detail;
+    end generate gen_input_output_module;
+
 
     --------------------------------------------------------------------------------------
     -- connection between muxes at output of apps and permutation networks
     --------------------------------------------------------------------------------------
     gen_permutation_network_input_conex: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        perm_input(i) <= mux_app_output_out(i);
+        perm_input(i) <= mux_output_app_out(i);
     end generate gen_permutation_network_input_conex;
     
 
@@ -187,6 +174,16 @@ begin
         end generate gen_permutation_network_output_conex;
     end generate gen_permutation_network_output_conex_detail;
     
+    
+    --------------------------------------------------------------------------------------
+    -- parity out input from app
+    --------------------------------------------------------------------------------------
+    gen_parity_out: for i in 0 to SUBMAT_SIZE - 1 generate
+        gen_parity_out_detail: for j in 0 to CFU_PAR_LEVEL - 1 generate
+            parity_out(i)(j) <= cnb_input(i)(j)(BW_APP - 1);
+        end generate gen_parity_out_detail;
+    end generate gen_parity_out;
+    
 
     --------------------------------------------------------------------------------------
     -- cnbs intantiations
@@ -203,9 +200,8 @@ begin
         addr_msg_ram_read => msg_rd_addr,
         addr_msg_ram_write => msg_wr_addr,
         app_in => cnb_input(j),
-        app_out => cnb_output(j),
-        check_node_parity_out => parity_out(j)
-        );
+        app_out => cnb_output(j)
+    );
     end generate gen_cnbs;
 
     
@@ -214,31 +210,21 @@ begin
     --------------------------------------------------------------------------------------
     gen_input_app_from_cnbs_detail: for j in 0 to SUBMAT_SIZE - 1 generate
         gen_input_apps_from_cnbs: for i in 0 to CFU_PAR_LEVEL - 1 generate
-            mux_app_input_in_cnb(i)(j) <= cnb_output(j)(i);
+            cnb_output_in_app(i)(j) <= cnb_output(j)(i);
         end generate gen_input_apps_from_cnbs;
     end generate gen_input_app_from_cnbs_detail;
         
 
     --------------------------------------------------------------------------------------
-    -- get hard bits signals from the inputs of APP coming from CNBs
-    --------------------------------------------------------------------------------------
-    gen_hard_bits: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        gen_hard_bits_detail: for j in 0 to SUBMAT_SIZE - 1 generate
-            hard_bits_cnb(i)(j) <= mux_app_input_in_cnb(i)(j)(BW_APP - 1);
-        end generate gen_hard_bits_detail;
-    end generate gen_hard_bits;
-
-
-    --------------------------------------------------------------------------------------
     -- output ordering
     --------------------------------------------------------------------------------------
     output_module_ins: output_module port map (
-        rst => rst,
-        clk => clk,
-        finish_iter => finish_iter,
-        code_rate => code_rate,
-        input => hard_bits_cnb,
-        output => output
+            rst => rst,
+            clk => clk,
+            finish_iter => finish_iter,
+            code_rate => code_rate,
+            input => output_in,
+            output => output
     );
 
 
@@ -265,9 +251,8 @@ begin
              msg_rd_addr => msg_rd_addr,
              msg_wr_addr => msg_wr_addr,
              shift => shift,
-             mux_input_halves => mux_input_halves,
-             mux_input_app => mux_input_app,
-             mux_output_app => mux_output_app
+             sel_mux_input_halves => sel_mux_input_halves,
+             sel_mux_output_app => sel_mux_output_app
     );
 
     
