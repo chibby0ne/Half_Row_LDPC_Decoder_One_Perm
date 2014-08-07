@@ -28,10 +28,12 @@ entity controller is
              parity_out: in t_parity_out_contr;
 
         -- outputs
+             ena_msg_ram: out std_logic;                                -- used for enabling msg ram
              ena_vc: out std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
              ena_rp: out std_logic;
              ena_ct: out std_logic;
              ena_cf: out std_logic;
+             new_codeword: out std_logic;
              valid_output: out std_logic;
              finish_iter: out std_logic;
              iter: out t_iter;
@@ -41,6 +43,7 @@ entity controller is
              msg_wr_addr: out t_msg_ram_addr;
              shift: out t_shift_contr;
              sel_mux_input_halves: out std_logic;     -- mux choosing input codeword halves
+             sel_mux_input_app: out std_logic;
              sel_mux_output_app: out t_mux_out_app    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
          );
 end entity controller;
@@ -67,13 +70,18 @@ architecture circuit of controller is
     signal matrix_rows: natural range 0 to 8:= 1;
     signal matrix_max_check_degree: natural range 0 to 16;
 
+    signal parity_out_reg: t_parity_out_contr;
+    
+
+    -- iterating signal
 
     -- signals used for debugging (assigned by variables)
     signal index_row_sig: natural := 0;
     signal cng_counter_sig: natural := 0;
     signal vector_addr_sig: natural := 0;
     signal start_pos_next_half_sig: natural := 0;
-    signal ok_checks_sig: integer := 0;
+    signal ok_checks_sig: natural := 0;
+    signal pchecks_sig: std_logic_vector(SUBMAT_SIZE - 1 downto 0) := (others => '0');
     
     
 begin
@@ -186,6 +194,7 @@ begin
                 ena_rp <= '0';
                 ena_ct <= '0';
                 ena_cf <= '0';
+                ena_msg_ram <= '0';
                 ena_vc <= (others => '0');
 
 
@@ -198,7 +207,9 @@ begin
                 app_rd_addr <= '0';
                 app_wr_addr <= '0';
                 sel_mux_input_halves <= '0';
+                sel_mux_input_app <= '0';
 
+                parity_out_reg <= (others => (others => '0'));
 
                 --
                 -- max_app_val or real app val + real shift 
@@ -220,8 +231,11 @@ begin
 
                 iter_int := 0;
                 iter <= std_logic_vector(to_unsigned(0, BW_MAX_ITER));
-                finish_iter <= '0';
                 next_iter_last_iter := false;
+                finish_iter <= '0';
+
+                -- getting new codeword?
+                new_codeword <= '0';
 
                 --
                 -- resetting valid output
@@ -252,8 +266,12 @@ begin
 
                 if (first_time = true) then
 
-                    ena_vc <= (others => '0');                             -- ENA_VC for the the first time it is in this state (not writing to APP)
+                    ena_msg_ram <= '0';
+                    ena_vc <= (others => '1');                             -- ENA_VC for the the first time it is in this state (writing to APP)
                     sel_mux_input_halves <= '0';                            -- start with MS half
+                    sel_mux_input_app <= '1';                               -- store in APP from input
+
+                    app_wr_addr <= '0';                                     -- store in APP in first half
 
                     -- matrix's rows handling
                     cng_counter := 0;
@@ -267,6 +285,8 @@ begin
 
                 else
 
+                    ena_msg_ram <= '1';
+
                     -- here should use the enables valid for the SECOND state
                     for i in 0 to CFU_PAR_LEVEL - 1 loop
                         ena_vc(i) <= ena_vc_second(i);
@@ -274,6 +294,8 @@ begin
 
                     app_rd_addr <= '0';
                     app_wr_addr <= '1';
+
+                    sel_mux_input_app <= '0';
 
                     -- matrix's rows handling
                     cng_counter := cng_counter + 1;
@@ -293,9 +315,9 @@ begin
                     if (msg_row_rd = matrix_rows * 2) then
                         msg_row_rd := 0;
                     end if;
-                    if (msg_row_wr = matrix_rows * 2) then
-                        msg_row_wr := 0;
-                    end if;
+                    -- if (msg_row_wr = matrix_rows * 2) then
+                    --     msg_row_wr := 0;
+                    -- end if;
 
 
                     -- 
@@ -354,6 +376,9 @@ begin
                 msg_rd_addr <= std_logic_vector(to_unsigned(msg_row_rd, BW_MSG_RAM));
                 msg_wr_addr <= std_logic_vector(to_unsigned(msg_row_wr, BW_MSG_RAM));
 
+                if (first_time = false) then
+                    msg_row_wr := msg_row_wr + 1;
+                end if;
                 msg_row_rd := msg_row_rd + 1;
 
 
@@ -365,6 +390,7 @@ begin
                 cng_counter_sig <= cng_counter;
                 vector_addr_sig <= vector_addr;
                 start_pos_next_half_sig <= start_pos_next_half;
+                ok_checks_sig <= ok_checks;
 
 
                 --
@@ -375,6 +401,7 @@ begin
                         valid_output <= '1';
                     end if;
                     finish_iter <= '1';
+                    new_codeword <= '1';
                     nx_state <= FINISH;
                 else
                     nx_state <= SECOND;
@@ -394,7 +421,7 @@ begin
                 ena_rp <= '1';
                 ena_ct <= '1';
                 ena_cf <= '0';
-                ena_vc <= (others => '0');
+                ena_msg_ram <= '0';
 
 
                 --
@@ -402,36 +429,29 @@ begin
                 --
                 if (first_time = true) then
                     sel_mux_input_halves <= '1';                -- get codeword from input 
+
+                    ena_vc <= (others => '1');                  -- store second half in APP
+                    sel_mux_input_app <= '1';                   -- store in APP from input second half
+
+                    app_wr_addr <= '1';                         -- store in address 1 of APP
                 else
+                    sel_mux_input_app <= '0';
+                    ena_vc <= (others => '0');                  -- using APP values
                     app_rd_addr <= '1';
 
                     
-                    -- 
-                    -- parity checks (2st half)
-                    --
-                    for i in 0 to SUBMAT_SIZE - 1 loop
-                        pchecks(i) := pchecks(i) xor parity_out(i)(0);
-                        for j in 1 to CFU_PAR_LEVEL - 1 loop
-                            pchecks(i) := pchecks(i) xor parity_out(i)(j);
-                        end loop;
-                    end loop;
-
-                    for i in 0 to SUBMAT_SIZE - 1 loop
-                        if (pchecks(i) = '0') then
-                            val := 1;
-                        else
-                            val := 0;
-                        end if;
-                        ok_checks := ok_checks + val;
-                    end loop;
-
-                    -- if all parity checks are satisfied do one more whole iteration (EARLY TERMINATION)
-                    if (ok_checks = matrix_rows * SUBMAT_SIZE) then
-                        next_iter_last_iter := true;
-                    end if;
-
-
                 end if;
+
+
+                -- 
+                -- parity checks (1st half)
+                --
+                for i in 0 to SUBMAT_SIZE - 1 loop                      -- for each CNB
+                    pchecks(i) := parity_out(i)(0);                     -- bit if edge 0, for cnb i
+                    for j in 1 to CFU_PAR_LEVEL - 1 loop                -- xor all the edges (j) in each cnb (i)
+                        pchecks(i) := pchecks(i) xor parity_out(i)(j);  
+                    end loop;
+                end loop;
 
 
                 --
@@ -476,6 +496,8 @@ begin
                 cng_counter_sig <= cng_counter;
                 vector_addr_sig <= vector_addr;
                 start_pos_next_half_sig <= start_pos_next_half;
+                ok_checks_sig <= ok_checks;
+                pchecks_sig <= pchecks;
 
 
                 --
@@ -490,7 +512,7 @@ begin
             --------------------------------------------------------------------------------------
             when THIRD =>          -- at first in CT
 
-                first_time := false;
+                -- first_time := false;
 
                 --
                 -- clock gating for pipeline stages
@@ -498,6 +520,7 @@ begin
                 ena_rp <= '0';
                 ena_ct <= '1';
                 ena_cf <= '1';
+                ena_msg_ram <= '0';
                 ena_vc <= (others => '0');
 
 
@@ -505,20 +528,47 @@ begin
                 -- APP RAM
                 --
                 -- nothing to do
-                
+                sel_mux_input_app <= '0';
+
+
+                -- 
+                -- parity checks (2st half)
+                --
+                for i in 0 to SUBMAT_SIZE - 1 loop
+                    pchecks(i) := pchecks(i) xor parity_out(i)(0);
+                    for j in 1 to CFU_PAR_LEVEL - 1 loop
+                        pchecks(i) := pchecks(i) xor parity_out(i)(j);
+                    end loop;
+                end loop;
+
+                for i in 0 to SUBMAT_SIZE - 1 loop
+                    if (pchecks(i) = '0') then
+                        val := 1;
+                    else
+                        val := 0;
+                    end if;
+                    ok_checks := ok_checks + val;
+                end loop;
+
+
+                -- if all parity checks are satisfied do one more whole iteration (EARLY TERMINATION)
+                if (ok_checks = matrix_rows * SUBMAT_SIZE) then
+                    next_iter_last_iter := true;
+                end if;
+
 
                 --
                 -- max_app_val or real app val + real shift 
                 --
                 -- no shifting done because there's no data needed
 
-                
+
                 --
                 -- inside CNB
                 --
                 iter <= std_logic_vector(to_unsigned(iter_int, BW_MAX_ITER));
                 msg_wr_addr <= std_logic_vector(to_unsigned(msg_row_wr, BW_MSG_RAM));
-                msg_row_wr := msg_row_wr + 1;
+                -- msg_row_wr := msg_row_wr + 1;
 
 
                 -- finish_iter
@@ -531,6 +581,8 @@ begin
                 cng_counter_sig <= cng_counter;
                 vector_addr_sig <= vector_addr;
                 start_pos_next_half_sig <= start_pos_next_half;
+                ok_checks_sig <= ok_checks;
+                pchecks_sig <= pchecks;
 
 
                 --
@@ -540,11 +592,12 @@ begin
 
 
 
-                
+
             --------------------------------------------------------------------------------------
             -- fourth state (just CF)
             --------------------------------------------------------------------------------------
             when FOURTH => 
+
 
                 --
                 -- clock gating for pipeline stages
@@ -552,26 +605,32 @@ begin
                 ena_rp <= '0';
                 ena_ct <= '0';
                 ena_cf <= '1';
+                ena_msg_ram <= '1';
 
                 -- here should use the enables valid for the FIRST state
                 for i in 0 to CFU_PAR_LEVEL - 1 loop
                     ena_vc(i) <= ena_vc_first(i);
                 end loop;
 
+                sel_mux_input_app <= '0';
 
-                
+
 
                 --
                 -- APP RAM
                 --
                 app_wr_addr <= '0';
-                
+
+                first_time := false;
 
                 --
                 -- max_app_val or real app val + real shift 
                 --
                 -- no shifting done because there's no data needed
-
+                -- reset if reached end
+                if (msg_row_wr = matrix_rows * 2) then
+                    msg_row_wr := 0;
+                end if;
 
                 --
                 -- inside CNB
@@ -626,6 +685,7 @@ begin
 
                 -- signal for output module
                 finish_iter <= '1';
+                new_codeword <= '0';
 
                 -- next state 
                 nx_state <= START_RESET;

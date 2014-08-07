@@ -31,12 +31,14 @@ architecture circuit of top_level_tb is
     --------------------------------------------------------------------------------------
     component top_level is
         port (
+        -- inputs
                  clk: in std_logic;
                  rst: in std_logic;
                  code_rate: in t_code_rate;
                  input: in t_app_message_full_codeword;
 
         -- outputs
+                 new_codeword: out std_logic;
                  valid_output: out std_logic;
                  output: out t_hard_decision_full_codeword);
     end component top_level;
@@ -49,13 +51,16 @@ architecture circuit of top_level_tb is
     signal rst_tb: std_logic := '0';
     signal code_rate_tb: t_code_rate;
     signal input_tb: t_app_message_full_codeword;
+    signal new_codeword_tb: std_logic := '0';
     signal valid_output_tb: std_logic := '0';
     signal output_tb: t_hard_decision_full_codeword;
     file fin: text open read_mode is "input_decoder_oneword.txt";
     file fout: text open read_mode is "output_decoder_oneword_column.txt";
+    -- file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
+    -- file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
     signal cnb_input_sig: t_cnb_message_tc_top_level;
     
-    
+
     
     
 begin
@@ -64,10 +69,14 @@ begin
     -- component instantiation
     --------------------------------------------------------------------------------------
     dut: top_level port map (
+        -- inputs
         clk => clk_tb,
         rst => rst_tb,
         code_rate => code_rate_tb,
         input => input_tb,  
+
+        -- output
+        new_codeword => new_codeword_tb,
         valid_output => valid_output_tb,
         output => output_tb
     );
@@ -76,8 +85,6 @@ begin
     --------------------------------------------------------------------------------------
     -- stimuli generation
     --------------------------------------------------------------------------------------
-
-    cnb_input_sig <= top_level.cnb_input;
     
     -- clk
     clk_tb <= not clk_tb after PERIOD / 2;

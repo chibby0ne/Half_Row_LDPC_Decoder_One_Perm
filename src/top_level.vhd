@@ -25,12 +25,12 @@ entity top_level is
         input: in t_app_message_full_codeword; 
 
         -- outputs
+        new_codeword: out std_logic;
         valid_output: out std_logic;
         output: out t_hard_decision_full_codeword);
 end entity top_level;
 --------------------------------------------------------
 architecture circuit of top_level is
-
 
     -- signal used in mux selecting input half
     signal input_newcode: t_app_message_half_codeword;
@@ -50,6 +50,11 @@ architecture circuit of top_level is
     signal perm_input: t_app_message_half_codeword;
     signal perm_output: t_app_message_half_codeword;
     
+
+
+
+
+
     -- signals used by cnbs
     signal cnb_input: t_cnb_message_tc_top_level;
     signal cnb_output: t_cnb_message_tc_top_level;
@@ -65,7 +70,9 @@ architecture circuit of top_level is
     
     -- singals used by controller
     signal parity_out: t_parity_out_contr;
-    signal ena_vc: std_logic;               
+    signal parity_out_reg: t_parity_out_contr;
+    signal ena_msg_ram: std_logic; 
+    signal ena_vc: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);               
     signal ena_rp: std_logic;
     signal ena_ct: std_logic;
     signal ena_cf: std_logic;
@@ -76,13 +83,15 @@ architecture circuit of top_level is
     signal msg_rd_addr: t_msg_ram_addr;    
     signal msg_wr_addr: t_msg_ram_addr;
     signal shift: t_shift_contr;
+
     signal sel_mux_input_halves: std_logic;     -- selects which half is being stored 
+    signal sel_mux_input_app: std_logic;        
     signal sel_mux_output_app: t_mux_out_app;   -- selects which value to use as CNB input: dummy, from inputs, or from app
 
     signal split: std_logic := '0';
-    
 
    
+
 begin
 
     
@@ -100,26 +109,41 @@ begin
     
 
     --------------------------------------------------------------------------------------
-    -- connection between muxes at input of app and apps
+    -- mux to select input of app
     --------------------------------------------------------------------------------------
-    gen_mux_input_app_conex: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        app_in(i)  <= cnb_output_in_app(i);
-    end generate gen_mux_input_app_conex;
-
-
+    gen_mux_input_app: for i in 0 to CFU_PAR_LEVEL - 1 generate
+        mux_input_app_ins: mux2_1 port map (
+            input0 => cnb_output_in_app(i),
+            input1 => input_newcode(i),
+            sel => sel_mux_input_app,
+            output => app_in(i)
+        );
+    end generate gen_mux_input_app;
+    
+    
     --------------------------------------------------------------------------------------
     -- apps instantiation
     --------------------------------------------------------------------------------------
     gen_app_ram: for i in 0 to CFU_PAR_LEVEL - 1 generate
         app_ram_ins: app_ram port map (
             clk => clk,
-            we => ena_vc,
+            we => ena_vc(i),
             wr_address => app_wr_addr,
             rd_address => app_rd_addr,
             data_in => app_in(i),
             data_out => app_out(i)
         );
     end generate gen_app_ram;
+
+
+    --------------------------------------------------------------------------------------
+    -- input to output module
+    --------------------------------------------------------------------------------------
+    gen_input_output_module: for i in 0 to CFU_PAR_LEVEL - 1 generate
+        gen_input_output_module_detail: for j in 0 to SUBMAT_SIZE - 1 generate
+            output_in(i)(j) <= app_out(i)(j)(BW_APP - 1);
+        end generate gen_input_output_module_detail;
+    end generate gen_input_output_module;
 
 
     --------------------------------------------------------------------------------------
@@ -134,17 +158,8 @@ begin
             output => mux_output_app_out(i)
         );
     end generate gen_mux_output_app_ins;
+
     
-    --------------------------------------------------------------------------------------
-    -- input to output module
-    --------------------------------------------------------------------------------------
-    gen_input_output_module: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        gen_input_output_module_detail: for j in 0 to SUBMAT_SIZE - 1 generate
-            output_in(i)(j) <= mux_output_app_out(i)(j)(BW_APP - 1);
-        end generate gen_input_output_module_detail;
-    end generate gen_input_output_module;
-
-
     --------------------------------------------------------------------------------------
     -- connection between muxes at output of apps and permutation networks
     --------------------------------------------------------------------------------------
@@ -173,8 +188,8 @@ begin
             cnb_input(j)(i) <= perm_output(i)(j);
         end generate gen_permutation_network_output_conex;
     end generate gen_permutation_network_output_conex_detail;
-    
-    
+
+
     --------------------------------------------------------------------------------------
     -- parity out input from app
     --------------------------------------------------------------------------------------
@@ -183,7 +198,17 @@ begin
             parity_out(i)(j) <= cnb_input(i)(j)(BW_APP - 1);
         end generate gen_parity_out_detail;
     end generate gen_parity_out;
-    
+
+    -- register parity_out to avoid glitches, and input that to the controller
+    process (rst, clk)
+    begin
+        if (rst = '1') then
+            parity_out_reg <= (others => (others => '0'));
+        elsif (clk'event and clk = '1') then
+            parity_out_reg <= parity_out;
+        end if;
+    end process;
+
 
     --------------------------------------------------------------------------------------
     -- cnbs intantiations
@@ -193,6 +218,8 @@ begin
         rst => rst,
         clk => clk,
         split => split,
+        ena_msg_ram => ena_msg_ram,
+        ena_vc => ena_vc,
         ena_rp => ena_rp,
         ena_ct => ena_ct,
         ena_cf => ena_cf,
@@ -218,7 +245,7 @@ begin
     --------------------------------------------------------------------------------------
     -- output ordering
     --------------------------------------------------------------------------------------
-    output_module_ins: output_module port map (
+    output_module_ins: output_module_inver port map (
             rst => rst,
             clk => clk,
             finish_iter => finish_iter,
@@ -236,13 +263,15 @@ begin
              clk => clk,
              rst => rst,
              code_rate => code_rate,
-             parity_out => parity_out,
+             parity_out => parity_out_reg,
 
              -- outputs
+             ena_msg_ram => ena_msg_ram,
              ena_vc => ena_vc,
              ena_rp => ena_rp,
              ena_ct => ena_ct,
              ena_cf => ena_cf,
+             new_codeword => new_codeword,
              valid_output => valid_output,
              finish_iter => finish_iter,
              iter => iter,
@@ -252,6 +281,7 @@ begin
              msg_wr_addr => msg_wr_addr,
              shift => shift,
              sel_mux_input_halves => sel_mux_input_halves,
+             sel_mux_input_app => sel_mux_input_app,
              sel_mux_output_app => sel_mux_output_app
     );
 

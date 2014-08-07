@@ -1,8 +1,8 @@
 --! 
 --! Copyright (C) 2010 - 2013 Creonic GmbH
 --!
---! @file: output_module.vhd
---! @brief: output module used for ordering the output of app information into row order
+--! @file: output_module_inver.vhd
+--! @brief: output module (inver) used for ordering the output of app information into row order
 --! @author: Antonio Gutierrez
 --! @date: 2014-06-23
 --!
@@ -16,7 +16,7 @@ use work.pkg_ieee_802_11ad_matrix.all;
 use work.pkg_param.all;
 use work.pkg_types.all;
 --------------------------------------------------------
-entity output_module is
+entity output_module_inver is
     port (
         rst: in std_logic;
         clk: in std_logic;
@@ -24,9 +24,9 @@ entity output_module is
         code_rate: in t_code_rate;
         input: in t_hard_decision_half_codeword;
         output: out t_hard_decision_full_codeword);
-end entity output_module;
+end entity output_module_inver;
 --------------------------------------------------------
-architecture circuit of output_module is
+architecture circuit of output_module_inver is
 
     type t_output_vector is array (1 downto 0) of t_hard_decision_half_codeword;
     signal shift: t_array16;
@@ -82,7 +82,7 @@ begin
                             for k in 0 to SUBMAT_SIZE - 1 loop      -- for all 42 elements 
                                 base := i * CFU_PAR_LEVEL + j;
                                 val := (shift(base) + k) mod SUBMAT_SIZE;     -- shift starts from 0 to 16 meaning that the leftmost is 0 that's why this index is so complicated
-                                output(base)(k) <= input_reg(i)(j)(val);
+                                output(base)(val) <= input_reg(i)(j)(k);
                             end loop;
                         end loop;
                     end loop;

@@ -32,7 +32,20 @@ package pkg_components is
                  output: out t_app_messages
              );
     end component mux2_1;
+    
+    
+    --------------------------------------------------------------------------------------
+    -- mux 2 to 1 used in input of extrinsic message
+    --------------------------------------------------------------------------------------
 
+    component mux2_1_msg_ram is
+        port (
+                 input0: in signed(BW_EXTR - 1 downto 0);
+                 input1: in signed(BW_EXTR - 1 downto 0);
+                 sel: in std_logic;
+                 output: out signed(BW_EXTR - 1 downto 0)
+             );
+    end component mux2_1_msg_ram;
 
     --------------------------------------------------------------------------------------
     -- app ram
@@ -42,7 +55,7 @@ package pkg_components is
                  clk: in std_logic;
                  we: in std_logic;
                  wr_address: in std_logic;
-                 rd_address: in std_logic; 
+                 rd_address: in std_logic;
                  data_in: in t_app_messages;
                  data_out: out t_app_messages
              );
@@ -73,6 +86,19 @@ package pkg_components is
              );
     end component permutation_network;
 
+
+    --------------------------------------------------------------------------------------
+    -- permutation network
+    --------------------------------------------------------------------------------------
+    component permutation_network_inver is
+        -- generic(const_name const_type = const_value)
+        port (
+            input: in t_app_messages;
+            shift: in t_shift_perm_net; 
+            output: out t_app_messages);
+    end component permutation_network_inver;
+
+
     --------------------------------------------------------------------------------------
     -- check node block
     --------------------------------------------------------------------------------------
@@ -82,6 +108,8 @@ package pkg_components is
                  rst: in std_logic;
                  clk: in std_logic;
                  split: in std_logic;
+                 ena_msg_ram: in std_logic;
+                 ena_vc: in std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
                  ena_rp: in std_logic;
                  ena_ct: in std_logic;
                  ena_cf: in std_logic;
@@ -145,6 +173,21 @@ package pkg_components is
 
 
     --------------------------------------------------------------------------------------
+    -- output module
+    --------------------------------------------------------------------------------------
+    component output_module_inver is
+        port (
+                 rst: in std_logic;
+                 clk: in std_logic;
+                 finish_iter: in std_logic;
+                 code_rate: in t_code_rate;
+                 input: in t_hard_decision_half_codeword;
+                 output: out t_hard_decision_full_codeword
+             );
+    end component output_module_inver;
+
+
+    --------------------------------------------------------------------------------------
     -- controller
     --------------------------------------------------------------------------------------
     component controller is
@@ -156,10 +199,12 @@ package pkg_components is
                  parity_out: in t_parity_out_contr;
 
              -- outputs
-                 ena_vc: out std_logic;
+                 ena_msg_ram: out std_logic;
+                 ena_vc: out std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
                  ena_rp: out std_logic;
                  ena_ct: out std_logic;
                  ena_cf: out std_logic;
+                 new_codeword: out std_logic;
                  valid_output: out std_logic;
                  finish_iter: out std_logic;
                  iter: out t_iter;
@@ -168,9 +213,13 @@ package pkg_components is
                  msg_rd_addr: out t_msg_ram_addr;
                  msg_wr_addr: out t_msg_ram_addr;
                  shift: out t_shift_contr;
+
                  sel_mux_input_halves: out std_logic;
+                 sel_mux_input_app: out std_logic;
                  sel_mux_output_app: out t_mux_out_app                    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
              );
+
     end component controller;
+
 
 end pkg_components;

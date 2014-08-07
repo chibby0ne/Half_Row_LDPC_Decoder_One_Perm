@@ -20,12 +20,12 @@ use work.pkg_ieee_802_11ad_param.all;
 
 
 entity check_node_block is
---generic declarations
     port (
-
         rst: in std_logic;
         clk: in std_logic;
         split: in std_logic;
+        ena_msg_ram: in std_logic;
+        ena_vc: in std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
         ena_rp: in std_logic;
         ena_ct: in std_logic;
         ena_cf: in std_logic;
@@ -45,6 +45,8 @@ architecture circuit of check_node_block is
     -- signals used by msg ram
     signal extrinsic_info_read: t_cn_message;
     signal extrinsic_info_write: t_cn_message;
+    signal zero: signed(BW_EXTR - 1 downto 0) := to_signed(0, BW_EXTR);
+    
     
 
     -- signals used for FIFOs
@@ -91,7 +93,7 @@ begin
                 app_in_reg <= app_in;
                 iter_int_reg <= iter_int;
                 addr_msg_ram_read_reg <= addr_msg_ram_read;
-                addr_msg_ram_write_reg <= addr_msg_ram_write;
+                -- addr_msg_ram_write_reg <= addr_msg_ram_write;
             end if;
         end if;
     end process;
@@ -102,9 +104,9 @@ begin
     --------------------------------------------------------------------------------------
     msg_ram_ins: msg_ram port map (
         clk => clk,
-        we => ena_cf,
-        wr_address => addr_msg_ram_write_reg,
-        -- wr_address => addr_msg_ram_write,
+        we => ena_msg_ram,
+        -- wr_address => addr_msg_ram_write_reg,
+        wr_address => addr_msg_ram_write,
         rd_address => addr_msg_ram_read_reg,
         data_in => extrinsic_info_write,
         data_out => extrinsic_info_read
@@ -116,7 +118,7 @@ begin
     --------------------------------------------------------------------------------------
     subs: for i in CFU_PAR_LEVEL - 1 downto 0 generate
         zetas(i) <= app_in_reg(i) when iter_int_reg = 0 else                 -- for first iteration we skip substraction
-                       app_in_reg(i) - extrinsic_info_read(i);      -- for the rest
+                    app_in_reg(i) - extrinsic_info_read(i);                  -- for the rest
     end generate subs;
 
     
@@ -171,8 +173,15 @@ begin
     --------------------------------------------------------------------------------------
     -- write new extrinsic info in message ram
     --------------------------------------------------------------------------------------
-    extrinsic_info_write <= check_node_out;
-       
+    gen_mux_input_msg_ram: for i in CFU_PAR_LEVEL - 1 downto 0 generate
+        muxes_input_ram: mux2_1_msg_ram port map (
+            input0 => zero,
+            input1 => check_node_out(i),
+            sel => ena_vc(i),
+            output => extrinsic_info_write(i)
+        );
+    end generate gen_mux_input_msg_ram;
+
 
     --------------------------------------------------------------------------------------
     -- FIFOs used to store the A priori info (Zn->m)
