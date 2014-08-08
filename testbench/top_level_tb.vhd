@@ -54,10 +54,10 @@ architecture circuit of top_level_tb is
     signal new_codeword_tb: std_logic := '0';
     signal valid_output_tb: std_logic := '0';
     signal output_tb: t_hard_decision_full_codeword;
-    file fin: text open read_mode is "input_decoder_oneword.txt";
-    file fout: text open read_mode is "output_decoder_oneword_column.txt";
-    -- file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
-    -- file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
+    -- file fin: text open read_mode is "input_decoder_oneword.txt";
+    -- file fout: text open read_mode is "output_decoder_oneword_column.txt";
+    file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
+    file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
     signal cnb_input_sig: t_cnb_message_tc_top_level;
     
 

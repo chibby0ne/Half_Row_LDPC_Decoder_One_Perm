@@ -42,8 +42,10 @@ entity controller is
              msg_rd_addr: out t_msg_ram_addr;
              msg_wr_addr: out t_msg_ram_addr;
              shift: out t_shift_contr;
+             shifting_info: out t_shift_contr;
              sel_mux_input_halves: out std_logic;     -- mux choosing input codeword halves
              sel_mux_input_app: out std_logic;
+             sel_mux_input_app_second: out std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
              sel_mux_output_app: out t_mux_out_app    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
          );
 end entity controller;
@@ -69,6 +71,11 @@ architecture circuit of controller is
     signal matrix_length: natural range 0 to 64;
     signal matrix_rows: natural range 0 to 8:= 1;
     signal matrix_max_check_degree: natural range 0 to 16;
+
+    signal matrix_shifting_info: t_array16 := (others => 0);
+    
+    signal matrix_last_row: t_array16 := (others => 0);
+    
 
     signal parity_out_reg: t_parity_out_contr;
     
@@ -105,6 +112,21 @@ begin
                            IEEE_802_11AD_P42_N672_R075_OFFSET(i) when i < 60 else -1 when code_rate = R075 else
                            IEEE_802_11AD_P42_N672_R081_OFFSET(i) when i < 48 else -1 when code_rate = R081;
     end generate gen_matrix_shift;
+
+    gen_matrix_shifting_info: for i in 0 to 2 * CFU_PAR_LEVEL - 1 generate
+        matrix_shifting_info(i) <= IEEE_802_11AD_P42_N672_R050_SHIFTING_INFO(i) when code_rate = R050 else
+                                   IEEE_802_11AD_P42_N672_R062_SHIFTING_INFO(i) when code_rate = R062 else
+                                   IEEE_802_11AD_P42_N672_R075_SHIFTING_INFO(i) when code_rate = R075 else
+                                   IEEE_802_11AD_P42_N672_R081_SHIFTING_INFO(i) when code_rate = R081;
+    end generate gen_matrix_shifting_info;
+
+    gen_matrix_last_row: for i in 0 to 2 * CFU_PAR_LEVEL - 1 generate
+        matrix_last_row(i) <= IEEE_802_11AD_P42_N672_R050_LAST_ROWS(i) when code_rate = R050 else
+                              IEEE_802_11AD_P42_N672_R062_LAST_ROWS(i) when code_rate = R062 else
+                              IEEE_802_11AD_P42_N672_R075_LAST_ROWS(i) when code_rate = R075 else
+                              IEEE_802_11AD_P42_N672_R081_LAST_ROWS(i) when code_rate = R081;
+    end generate gen_matrix_last_row;
+
 
     matrix_length <= IEEE_802_11AD_P42_N672_R050_ADDR'length when code_rate = R050 else
                      IEEE_802_11AD_P42_N672_R062_ADDR'length when code_rate = R062 else
@@ -175,6 +197,8 @@ begin
         
         variable ena_vc_first: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
         variable ena_vc_second: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
+        
+        variable current_row: natural range 0 to 8 := 0;
         
         
         
@@ -309,27 +333,16 @@ begin
                         ok_checks := 0;
 
                         finish_iter <= '1';
+
                     end if;
 
                     -- message ram addresses
                     if (msg_row_rd = matrix_rows * 2) then
                         msg_row_rd := 0;
                     end if;
-                    -- if (msg_row_wr = matrix_rows * 2) then
-                    --     msg_row_wr := 0;
-                    -- end if;
 
 
-                    -- 
-                    -- parity checks (1st half)
-                    --
-                    for i in 0 to SUBMAT_SIZE - 1 loop
-                        pchecks(i) := parity_out(i)(0);                     -- bit if edge 0, for cnb i
-                        for j in 1 to CFU_PAR_LEVEL - 1 loop                -- xor all the edges (j) in each cnb (i)
-                            pchecks(i) := pchecks(i) xor parity_out(i)(j);  
-                        end loop;
-                    end loop;
-
+                    
 
                 end if;
 
@@ -381,6 +394,14 @@ begin
                 end if;
                 msg_row_rd := msg_row_rd + 1;
 
+                for i in 0 to CFU_PAR_LEVEL - 1 loop
+                    if (matrix_last_row(CFU_PAR_LEVEL + i) = current_row) then
+                        sel_mux_input_app_second(i) <= '1';
+                        shifting_info(i) <= std_logic_vector(to_unsigned(matrix_shifting_info(CFU_PAR_LEVEL + i), shifting_info(i)'length));
+                    else
+                        sel_mux_input_app_second(i) <= '0';
+                    end if;
+                end loop;
 
 
                 --
@@ -439,7 +460,10 @@ begin
                     ena_vc <= (others => '0');                  -- using APP values
                     app_rd_addr <= '1';
 
-                    
+                    current_row := current_row + 1;
+                    if (current_row = matrix_rows) then
+                        current_row := 0;
+                    end if;
                 end if;
 
 
@@ -512,7 +536,6 @@ begin
             --------------------------------------------------------------------------------------
             when THIRD =>          -- at first in CT
 
-                -- first_time := false;
 
                 --
                 -- clock gating for pipeline stages
@@ -568,7 +591,6 @@ begin
                 --
                 iter <= std_logic_vector(to_unsigned(iter_int, BW_MAX_ITER));
                 msg_wr_addr <= std_logic_vector(to_unsigned(msg_row_wr, BW_MSG_RAM));
-                -- msg_row_wr := msg_row_wr + 1;
 
 
                 -- finish_iter
@@ -632,12 +654,25 @@ begin
                     msg_row_wr := 0;
                 end if;
 
+
+                for i in 0 to CFU_PAR_LEVEL - 1 loop
+                    if (matrix_last_row(i) = current_row) then
+                        sel_mux_input_app_second(i) <= '1';
+                        shifting_info(i) <= std_logic_vector(to_unsigned(matrix_shifting_info(i), shifting_info(i)'length));
+                    else
+                        sel_mux_input_app_second(i) <= '0';
+                    end if;
+                end loop;
+
+
                 --
                 -- inside CNB
                 --
                 iter <= std_logic_vector(to_unsigned(iter_int, BW_MAX_ITER));
                 msg_wr_addr <= std_logic_vector(to_unsigned(msg_row_wr, BW_MSG_RAM));
                 msg_row_wr := msg_row_wr + 1;
+
+
 
                 --
                 -- signals for debugging

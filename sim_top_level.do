@@ -3,6 +3,9 @@ add wave -unsigned sim:/clk_tb
 add wave -decimal sim:/input_tb
 add wave -decimal sim:/dut/input_newcode
 add wave -unsigned sim:/dut/sel_mux_input_halves
+add wave -unsigned sim:/dut/shifting_info_out
+add wave -unsigned sim:/dut/input_or_cnb
+add wave -unsigned sim:/dut/sel_mux_input_app_second
 add wave -decimal sim:/dut/app_in 
 add wave -unsigned sim:/dut/sel_mux_output_app
 add wave -unsigned sim:/dut/sel_mux_input_app
@@ -33,10 +36,10 @@ add wave -unsigned sim:/dut/app_rd_addr
 add wave -unsigned sim:/dut/app_wr_addr
 add wave -unsigned sim:/dut/msg_rd_addr
 add wave -unsigned sim:/dut/msg_wr_addr
+add wave -unsigned sim:/dut/sel_mux_input_app_second
 
 
 add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/addr_msg_ram_read_reg
-add wave -unsigned sim:/dut/gen_cnbs(0)/cnbs_ins/addr_msg_ram_write_reg
 add wave -signed sim:/dut/gen_cnbs(0)/cnbs_ins/app_in_reg
 add wave -signed sim:/dut/gen_cnbs(0)/cnbs_ins/zetas
 add wave -signed sim:/dut/gen_cnbs(0)/cnbs_ins/extrinsic_info_read

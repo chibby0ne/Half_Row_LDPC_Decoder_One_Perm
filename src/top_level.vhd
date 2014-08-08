@@ -90,6 +90,15 @@ architecture circuit of top_level is
 
     signal split: std_logic := '0';
 
+    
+    -- signals added for shifting info mux and perm network
+    signal input_or_cnb: t_app_message_half_codeword;
+    signal shifting_info: t_shift_contr;
+    signal shifting_info_out: t_app_message_half_codeword;
+    signal sel_mux_input_app_second: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
+    
+    
+
    
 
 begin
@@ -116,10 +125,35 @@ begin
             input0 => cnb_output_in_app(i),
             input1 => input_newcode(i),
             sel => sel_mux_input_app,
-            output => app_in(i)
+            output => input_or_cnb(i)
         );
     end generate gen_mux_input_app;
     
+
+    --------------------------------------------------------------------------------------
+    -- permutation used for shifting info (used for last row for each column)
+    --------------------------------------------------------------------------------------
+    gen_shifting_info_perm_net: for i in 0 to CFU_PAR_LEVEL - 1 generate
+        shifting_info_perm_net: permutation_network_inver port map (
+            input => input_or_cnb(i),
+            shift => shifting_info(i),
+            output => shifting_info_out(i)
+        );
+    end generate gen_shifting_info_perm_net;
+
+    
+    --------------------------------------------------------------------------------------
+    -- mux at input of app
+    --------------------------------------------------------------------------------------
+    gen_mux_input_app_second: for i in 0 to CFU_PAR_LEVEL - 1 generate
+        mux_input_app_second_ins: mux2_1 port map (
+            input0 => input_or_cnb(i),
+            input1 => shifting_info_out(i),
+            sel => sel_mux_input_app_second(i),
+            output => app_in(i)
+        );
+    end generate gen_mux_input_app_second;
+
     
     --------------------------------------------------------------------------------------
     -- apps instantiation
@@ -172,7 +206,7 @@ begin
     -- permutation network instantiation
     --------------------------------------------------------------------------------------
     gen_permutation_network: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        perm_net_ins: permutation_network port map (
+        perm_net_ins: permutation_network_inver port map (
             input => perm_input(i),
             shift => shift(i),                            -- because 0th is MS and matrix_offset starts from 0 onward
             output => perm_output(i)
@@ -245,11 +279,11 @@ begin
     --------------------------------------------------------------------------------------
     -- output ordering
     --------------------------------------------------------------------------------------
-    output_module_ins: output_module_inver port map (
+    output_module_ins: output_module_two_perm port map (
             rst => rst,
             clk => clk,
             finish_iter => finish_iter,
-            code_rate => code_rate,
+            -- code_rate => code_rate,
             input => output_in,
             output => output
     );
@@ -280,8 +314,10 @@ begin
              msg_rd_addr => msg_rd_addr,
              msg_wr_addr => msg_wr_addr,
              shift => shift,
+             shifting_info => shifting_info,
              sel_mux_input_halves => sel_mux_input_halves,
              sel_mux_input_app => sel_mux_input_app,
+             sel_mux_input_app_second => sel_mux_input_app_second,
              sel_mux_output_app => sel_mux_output_app
     );
 

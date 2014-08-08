@@ -24,8 +24,10 @@ package pkg_ieee_802_11ad_matrix is
     type t_array48 is array (0 to 47) of integer range -1 to SUBMAT_SIZE;
     type t_array16 is array (0 to 15) of integer range -1 to SUBMAT_SIZE;
     
-
     -- matrices in reduced form for different code rates
+
+    -- R050
+
     constant IEEE_802_11AD_P42_N672_R050_ADDR : t_array64 := (
     0, 2, 4, 6, 8, -1, -1, -1, 
     0, 2, 4, 7, 8, 9, -1, -1, 
@@ -59,6 +61,11 @@ package pkg_ieee_802_11ad_matrix is
     constant IEEE_802_11AD_P42_N672_R050_SHIFTING_INFO: t_array16 := (
     29, 22, 0, 34, 31, 21, 14, 20, 4, 28, 12, 27, 13, 0, 22, 24);
 
+    constant IEEE_802_11AD_P42_N672_R050_LAST_ROWS: t_array16 := (
+    5, 7, 5, 7, 7, 6, 7, 6, 7, 5, 6, 5, 7, 6, 7, 7);
+    
+
+    -- R062
 
     constant IEEE_802_11AD_P42_N672_R062_ADDR : t_array60 := (
     0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 
@@ -87,6 +94,11 @@ package pkg_ieee_802_11ad_matrix is
     constant IEEE_802_11AD_P42_N672_R062_SHIFTING_INFO : t_array16 := (
     29, 22, 0, 34, 31, 21, 14, 20, 4, 9, 12, 27, 24, 0, 22, 24);
 
+    constant IEEE_802_11AD_P42_N672_R062_LAST_ROWS: t_array16 := (
+    3, 5, 3, 5, 5, 4, 5, 4, 5, 4, 4, 3, 3, 4, 5, 5);
+
+
+    -- R075
 
     constant IEEE_802_11AD_P42_N672_R075_ADDR : t_array60 := (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, -1, -1, 
@@ -109,6 +121,11 @@ package pkg_ieee_802_11ad_matrix is
     constant IEEE_802_11AD_P42_N672_R075_SHIFTING_INFO : t_array16 := (
     25, 22, 4, 34, 31, 3, 14, 15, 4, 9, 14, 18, 13, 13, 22, 24);
 
+    constant IEEE_802_11AD_P42_N672_R075_LAST_ROWS: t_array16 := (
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 6, 7, 7, 7, 7, 7, 7);
+
+
+    -- R081
 
     constant IEEE_802_11AD_P42_N672_R081_ADDR : t_array48 := (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, -1, -1, 
@@ -128,6 +145,8 @@ package pkg_ieee_802_11ad_matrix is
     constant IEEE_802_11AD_P42_N672_R081_SHIFTING_INFO : t_array16 := (
     25, 22, 4, 34, 31, 3, 14, 15, 4, 2, 14, 18, 13, 13, 22, 24);
 
+    constant IEEE_802_11AD_P42_N672_R081_LAST_ROWS: t_array16 := (
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7);
 
 end package pkg_ieee_802_11ad_matrix;
 ------------------------------

@@ -22,6 +22,7 @@ vcom -reportprogress -300 -work work src/permutation_network.vhd
 vcom -reportprogress -300 -work work src/permutation_network_inver.vhd 
 vcom -reportprogress -300 -work work src/controller.vhd 
 vcom -reportprogress -300 -work work src/output_module.vhd 
+vcom -reportprogress -300 -work work src/output_module_two_perm.vhd 
 vcom -reportprogress -300 -work work src/output_module_inver.vhd 
 vcom -reportprogress -300 -work work src/top_level.vhd 
 

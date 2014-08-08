@@ -171,6 +171,19 @@ package pkg_components is
              );
     end component output_module;
 
+    --------------------------------------------------------------------------------------
+    -- output module
+    --------------------------------------------------------------------------------------
+    component output_module_two_perm is
+        port (
+                 rst: in std_logic;
+                 clk: in std_logic;
+                 finish_iter: in std_logic;
+                 input: in t_hard_decision_half_codeword;
+                 output: out t_hard_decision_full_codeword
+             );
+    end component output_module_two_perm;
+
 
     --------------------------------------------------------------------------------------
     -- output module
@@ -213,9 +226,11 @@ package pkg_components is
                  msg_rd_addr: out t_msg_ram_addr;
                  msg_wr_addr: out t_msg_ram_addr;
                  shift: out t_shift_contr;
+                 shifting_info: out t_shift_contr;
 
                  sel_mux_input_halves: out std_logic;
                  sel_mux_input_app: out std_logic;
+                 sel_mux_input_app_second: out std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
                  sel_mux_output_app: out t_mux_out_app                    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
              );
 
