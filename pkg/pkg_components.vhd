@@ -236,5 +236,22 @@ package pkg_components is
 
     end component controller;
 
+    
+    --------------------------------------------------------------------------------------
+    -- top level
+    --------------------------------------------------------------------------------------
+
+    component top_level is
+        port (
+                 clk: in std_logic;
+                 rst: in std_logic;
+                 code_rate: in t_code_rate;
+                 input: in t_app_message_full_codeword; 
+
+        -- outputs
+                 new_codeword: out std_logic;
+                 valid_output: out std_logic;
+                 output: out t_hard_decision_full_codeword);
+    end component top_level;
 
 end pkg_components;
