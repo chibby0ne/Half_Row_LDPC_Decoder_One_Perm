@@ -14,6 +14,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.pkg_support.all;
 use work.pkg_types.all;
+use work.pkg_param.all;
 use work.pkg_components.all;
 --------------------------------------------------------
 entity top_level_wrapper is
@@ -44,9 +45,9 @@ begin
     --------------------------------------------------------------------------------------
 
     -- code_rate
-    code_rate_map <= R050 when code_rate = '00' else 
-                     R062 when code_rate = '01' else
-                     R075 when code_rate = '11' else 
+    code_rate_map <= R050 when code_rate = "00" else 
+                     R062 when code_rate = "01" else
+                     R075 when code_rate = "11" else 
                      R081;
 
 
