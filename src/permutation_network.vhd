@@ -26,7 +26,7 @@ entity permutation_network is
 end entity permutation_network;
 --------------------------------------------------------
 architecture circuit of permutation_network is
-    signal shift_int: integer range 0 to SUBMAT_SIZE - 1 := 0;
+    signal shift_int: integer range 0 to 2**BW_SHIFT_VEC - 1 := 0;
 begin
     shift_int <= to_integer(unsigned(shift));
     output <= input when shift_int = 0 else 
