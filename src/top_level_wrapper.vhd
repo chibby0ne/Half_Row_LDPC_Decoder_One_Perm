@@ -21,7 +21,7 @@ entity top_level_wrapper is
     port (
     -- inputs
         clk: in std_logic;
-        rst: out std_logic;
+        rst: in std_logic;
         code_rate: in std_logic_vector(1 downto 0);                 -- 4 possible code rates log2 4 = 2
         input: in std_logic_vector(MAX_CHV * BW_APP - 1 downto 0);  -- 672 signals of BW_APP bits each
     -- outputs
