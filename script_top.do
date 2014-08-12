@@ -25,5 +25,6 @@ vcom -reportprogress -300 -work work src/output_module.vhd
 vcom -reportprogress -300 -work work src/output_module_two_perm.vhd 
 vcom -reportprogress -300 -work work src/output_module_inver.vhd 
 vcom -reportprogress -300 -work work src/top_level.vhd 
+vcom -reportprogress -300 -work work src/top_level_wrapper.vhd 
 
 vcom -reportprogress -300 -work work testbench/top_level_tb.vhd 
