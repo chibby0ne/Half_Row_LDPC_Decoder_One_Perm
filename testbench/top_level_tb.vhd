@@ -150,6 +150,9 @@ begin
     end process;
 
     process (new_codeword_tb)
+        variable l: line;
+        variable val: integer;
+        variable val_signed: signed(BW_APP - 1 downto 0);
     begin
         if (new_codeword_tb'event and  new_codeword_tb = '1') then
             if (not endfile(fin)) then
