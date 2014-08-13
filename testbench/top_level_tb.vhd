@@ -151,7 +151,7 @@ begin
 
     process (new_codeword_tb)
     begin
-        if (new_codeword = '1') then
+        if (new_codeword_tb'event and  new_codeword_tb = '1') then
             if (not endfile(fin)) then
                 for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
                     for j in 0 to SUBMAT_SIZE - 1 loop
@@ -169,7 +169,6 @@ begin
                 report "end of inputs"
                 severity failure;
             end if;
-            wait for PERIOD * 2;
         end if;
     end process;
 
@@ -197,61 +196,61 @@ begin
                     end loop;
                 end loop;
             else
-                -- assert false
-                -- report "no errors"
-                -- severity failure;
-                wait;
-            end if;
-    end process;
-
-    process (new_codeword_tb)
-        variable l: line;
-        variable val: integer := 0;
-        variable new_code: string;
-        variable good_value: boolean := false;
-        variable codewords_counter: integer := 1;
-
-    begin
-        if (new_codeword_tb = '1') then
-            if (not endfile(fout)) then
-                if (codewords_counter = 10) then
-                    while good_value = false loop
-                        readline(fout, l);
-                        read(l, new_code, good_value);
-                    end loop;
-                    good_value := false;
-                    codewords_counter := 0;
-                    while good_value = false loop
-                        readline(fout, l);
-                        read(l, new_code);
-                    end loop;
-                else
-                    while good_value = false loop
-                        readline(fout, l);
-                        read(l, new_code);
-                    end loop;
-                end if;
-                codewords_counter := codewords_counter + 1;
-
-                wait for PERIOD * 35;
-                for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
-                    for j in 0 to SUBMAT_SIZE - 1 loop
-                        readline(fout, l);
-                        read(l, val);
-                        -- assert to_integer(unsigned'("" & output_tb(i)(j))) = val                          -- uncomment this and next line and comment the two lines below when testing top_level directly
-                        -- report "output(" & integer'image(i) & ")(" & integer'image(j) & ") should be = " & integer'image(val) & " but is = " & integer'image(to_integer(unsigned'("" & output_tb(i)(j))))
-                        assert to_integer(unsigned'("" & output_tb(i * SUBMAT_SIZE + j))) = val 
-                        report "output(" & integer'image(i * SUBMAT_SIZE + j) & ") should be = " & integer'image(val) & " but is = " & integer'image(to_integer(unsigned'("" & output_tb(i * SUBMAT_SIZE + j))))
-                        severity failure;
-                    end loop;
-                end loop;
-            else
                 assert false
                 report "no errors"
                 severity failure;
+                -- wait;
             end if;
-        end if;
     end process;
 
+    -- process (finish_iter)
+    --     variable l: line;
+    --     variable val: integer := 0;
+    --     variable new_code: string;
+    --     variable good_value: boolean := false;
+    --     variable codewords_counter: integer := 1;
+    --
+    -- begin
+    --     if (new_codeword_tb = '1') then
+    --         if (not endfile(fout)) then
+    --             if (codewords_counter = 10) then
+    --                 while good_value = false loop
+    --                     readline(fout, l);
+    --                     read(l, new_code, good_value);
+    --                 end loop;
+    --                 good_value := false;
+    --                 codewords_counter := 0;
+    --                 while good_value = false loop
+    --                     readline(fout, l);
+    --                     read(l, new_code);
+    --                 end loop;
+    --             else
+    --                 while good_value = false loop
+    --                     readline(fout, l);
+    --                     read(l, new_code);
+    --                 end loop;
+    --             end if;
+    --             codewords_counter := codewords_counter + 1;
+    --
+    --             wait for PERIOD * 35;
+    --             for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
+    --                 for j in 0 to SUBMAT_SIZE - 1 loop
+    --                     readline(fout, l);
+    --                     read(l, val);
+    --                     -- assert to_integer(unsigned'("" & output_tb(i)(j))) = val                          -- uncomment this and next line and comment the two lines below when testing top_level directly
+    --                     -- report "output(" & integer'image(i) & ")(" & integer'image(j) & ") should be = " & integer'image(val) & " but is = " & integer'image(to_integer(unsigned'("" & output_tb(i)(j))))
+    --                     assert to_integer(unsigned'("" & output_tb(i * SUBMAT_SIZE + j))) = val 
+    --                     report "output(" & integer'image(i * SUBMAT_SIZE + j) & ") should be = " & integer'image(val) & " but is = " & integer'image(to_integer(unsigned'("" & output_tb(i * SUBMAT_SIZE + j))))
+    --                     severity failure;
+    --                 end loop;
+    --             end loop;
+    --         else
+    --             assert false
+    --             report "no errors"
+    --             severity failure;
+    --         end if;
+    --     end if;
+    -- end process;
+    --
 
 end architecture circuit;
