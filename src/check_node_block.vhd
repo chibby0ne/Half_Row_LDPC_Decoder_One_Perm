@@ -23,7 +23,6 @@ entity check_node_block is
     port (
         rst: in std_logic;
         clk: in std_logic;
-        split: in std_logic;
         ena_msg_ram: in std_logic;
         ena_vc: in std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
         ena_rp: in std_logic;
@@ -165,7 +164,6 @@ begin
                                             clk => clk,
                                             ena_cf => ena_cf,
                                             data_in => check_node_in_reg_out,
-                                            split => split,
                                             data_out => check_node_out
                                         );
     

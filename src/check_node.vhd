@@ -27,7 +27,6 @@ port(
 	clk           : in std_logic;
     ena_cf        : in std_logic;
 	data_in       : in t_cn_message;
-	split         : in std_logic; -- is the CN working in split mode
 
 	-- OUTPUTS
 	data_out      : out t_cn_message
@@ -56,20 +55,7 @@ architecture rtl_cfu of check_node is
 	signal data_out_neg_tc : t_four_min_s2_out_array_tc;
 	signal data_out_pos_tc : t_four_min_s2_out_array_tc;
 
-	-- Index of the evaluated minimum
-	signal index_s2 : t_index;
-	signal index_s3 : unsigned(3 downto 0); -- TODO define a const
-	-- signal index_s2_reg : t_index;
-	signal index_s2_i : t_index;
-	signal index_h : unsigned(3 downto 0);
-	signal index_l : unsigned(3 downto 0);
-
 	-- Parity calculation signals
-	-- signal parity_s0 : std_logic_vector(7 downto 0);
-	-- signal parity_s1 : std_logic_vector(3 downto 0);
-	-- signal parity_s2 : std_logic_vector(1 downto 0);
-	-- signal parity_s3 : std_logic;
-
     signal parity_s0 : std_logic_vector(3 downto 0);
 	signal parity_s1 : std_logic_vector(1 downto 0);
 	signal parity_s2 : std_logic;
@@ -79,9 +65,7 @@ architecture rtl_cfu of check_node is
 	signal parity_h : std_logic;
 	signal parity_l : std_logic;
 
-	-- signal data_out_mag : t_four_min_s2_out_array;
 	signal data_out_mag : t_four_min_s1_out_array;
-	-- signal data_out_mag_scaled : t_four_min_s2_out_array;
 	signal data_out_mag_scaled : t_four_min_s1_out_array;
 
 	-- in- and output messages which are registered if specified
@@ -93,11 +77,6 @@ architecture rtl_cfu of check_node is
 
 	signal parity_s2_reg : std_logic_vector(1 downto 0);
 	signal parity_s2_i : std_logic_vector(1 downto 0);
-
-	signal split_reg : std_logic;
-	signal split_i : std_logic;
-	signal split_reg2 : std_logic;
-	signal split_i2 : std_logic := '0';
 
 	-- in- and output message registers
 	signal data_in_reg : t_cn_message;
@@ -111,9 +90,6 @@ architecture rtl_cfu of check_node is
     signal four_min_s2_out_first_half : t_four_min_s2_out_array;
     signal four_min_s2_out_first_half_reg: t_four_min_s2_out_array;
 
-    signal index_s2_first_half: unsigned(3 downto 0);
-    signal index_s2_first_half_reg: unsigned(3 downto 0);
-    -- signal index_s2_reg: t_index;
 
     signal parity_s3_in_first_half: std_logic;
     signal parity_s3_in_first_half_reg: std_logic;
@@ -122,19 +98,6 @@ architecture rtl_cfu of check_node is
     signal parity_s3_out_mux: std_logic;
     signal parity_s3_out_reg: std_logic;
 
-    -- signal data_out_mag_out_mux: t_four_min_s1_out_array;
-    -- signal data_out_mag_out_reg: t_four_min_s1_out_array;
-    --
-    -- signal data_out_pos_tc_out_mux: t_four_min_s2_out_array_tc;
-    -- signal data_out_pos_tc_out_reg: t_four_min_s2_out_array_tc;
-    --
-    --
-    -- signal data_out_neg_tc_out_mux: t_four_min_s2_out_array_tc;
-    -- signal data_out_neg_tc_out_reg: t_four_min_s2_out_array_tc;
-    
-    signal index_s3_out_mux: unsigned(3 downto 0);
-    signal index_s3_out_reg: unsigned(3 downto 0);
-    
     signal four_min_s3_out_out_mux: t_four_min_s3_out_array;
     signal four_min_s3_out_out_reg: t_four_min_s3_out_array;
 
@@ -237,41 +200,6 @@ begin
     four_min_s3_out(0) <= four_min(four_min_s3_in(0));
 
 
-    
-    --------------------------------------------------------------------------------------
-	-- Generate the index of the first minima
-    --------------------------------------------------------------------------------------
-
-    -- generating the index of first minima of first half row 
-	index_s2(0) <= to_unsigned( 0, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '0' and sort_out(0).index = '0' else
-	               to_unsigned( 1, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '0' and sort_out(0).index = '1' else
-	               to_unsigned( 2, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '1' and sort_out(1).index = '0' else
-	               to_unsigned( 3, 4) when four_min_s2_out(0).index = '0' and four_min_s1_out(0).index = '1' and sort_out(1).index = '1' else
-	               to_unsigned( 4, 4) when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '0' and sort_out(2).index = '0' else
-	               to_unsigned( 5, 4) when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '0' and sort_out(2).index = '1' else
-	               to_unsigned( 6, 4) when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '1' and sort_out(3).index = '0' else
-	               to_unsigned( 7, 4);-- when four_min_s2_out(0).index = '1' and four_min_s1_out(1).index = '1' and sort_out(3).index = '1';
-
-
-    -- connection between output of register with index of first half and the last mux stage of index selection
-    index_s2_first_half <= index_s2_first_half_reg;
-
-    -- register storing first half row index  
-    process (clk)
-    begin
-        if (clk'event and clk = '1') then
-            if (ena_cf = '1') then
-                index_s2_first_half_reg <= index_s2(0);
-            end if;
-        end if;
-    end process;
-
-    -- find minimums using two halves of the row
-	index_s3 <= index_s2_first_half when four_min_s3_out(0).index = '0' else
-                index_s2(0) + to_unsigned(8, 4);   -- + 8 because it is second row
-
-
-    
     --------------------------------------------------------------------------------------
 	-- Generate the parity check for the check node.
 	-- It is represented by the following xor tree.
@@ -318,7 +246,6 @@ begin
     
     -- muxes for selecting whether to use last cycle signal(for 2nd halves) or current cycle signals (for 1st halves)
     parity_s3_out_mux <= parity_s3 when count = 0 else parity_s3_out_reg;
-    index_s3_out_mux <= index_s3 when count = 0 else index_s3_out_reg;
     four_min_s3_out_out_mux <= four_min_s3_out when count = 0 else four_min_s3_out_out_reg;
 
 
@@ -352,7 +279,6 @@ begin
         if (clk'event and clk = '1') then
             if (ena_cf = '1') then                  -- clock gating 
                 parity_s3_out_reg <= parity_s3_out_mux;
-                index_s3_out_reg <= index_s3_out_mux;
                 four_min_s3_out_out_reg <= four_min_s3_out_out_mux;
             end if;
         end if;
@@ -366,27 +292,12 @@ begin
     --------------------------------------------------------------------------------------
 
     -- leave this like this because split is not used so output will always be four_min_s3_out
-    pr_split : process(split_i2, parity_s2_i, parity_s3_out_mux, four_min_s2_out_i, four_min_s3_out_out_mux, index_s2_i, index_s3_out_mux)
-    begin
-        if split_i2 = '1' then
-            data_out_mag(0) <= four_min_s2_out_i(0);
-            parity_h <= parity_s2_i(0);
-            index_h <= index_s2_i(0);
-        else
-            data_out_mag(0) <= four_min_s3_out_out_mux(0);
-            parity_h <= parity_s3_out_mux;
-            index_h <= index_s3_out_mux;
-        end if;
-        if split_i2 = '1' then
-            data_out_mag(1) <= four_min_s2_out_i(0);
-            parity_l <= parity_s2_i(1);
-            index_l <= index_s2_i(1);
-        else
-            data_out_mag(1) <= four_min_s3_out_out_mux(0);
-            parity_l <= parity_s3_out_mux;
-            index_l <= index_s3_out_mux;
-        end if;
-    end process pr_split;
+    data_out_mag(0) <= four_min_s3_out_out_mux(0);
+    parity_h <= parity_s3_out_mux;
+
+    data_out_mag(1) <= four_min_s3_out_out_mux(0);
+    parity_l <= parity_s3_out_mux;
+
 
     -- apply esf factor to minimums
     data_out_mag_scaled(0).min0 <= esf_scale(data_out_mag(0).min0);
@@ -407,7 +318,7 @@ begin
 
     -- Upper tree
     gen_out_upper : for i in 0 to (CFU_PAR_LEVEL/2 - 1) generate
-        pr_gen_out_upper : process(parity_h, data_in_sign_i, data_out_mag, data_out_pos_tc, data_out_neg_tc, data_in_mag_i, index_h, index_l)
+        pr_gen_out_upper : process(parity_h, data_in_sign_i, data_out_mag, data_out_pos_tc, data_out_neg_tc, data_in_mag_i)
             variable v_sign : std_logic;
         begin
             v_sign := parity_h xor data_in_sign_i(i);
@@ -431,7 +342,7 @@ begin
 
     -- Lower tree
     gen_out_lower : for i in (CFU_PAR_LEVEL/2) to (CFU_PAR_LEVEL - 1) generate
-        pr_gen_out_lower : process(parity_l, data_in_sign_i, data_in_mag_i, data_out_pos_tc, data_out_neg_tc, data_out_mag, index_h, index_l)
+        pr_gen_out_lower : process(parity_l, data_in_sign_i, data_in_mag_i, data_out_pos_tc, data_out_neg_tc, data_out_mag)
             variable v_sign : std_logic;
         begin
             v_sign := parity_l xor data_in_sign_i(i);           -- calculate sign of this output considering parity sign and input sign

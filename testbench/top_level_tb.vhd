@@ -79,9 +79,13 @@ architecture circuit of top_level_tb is
 
     -- file fin: text open read_mode is "input_decoder_oneword.txt";
     -- file fout: text open read_mode is "output_decoder_oneword_column.txt";
-    file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
-    file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
+    -- file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
+    -- file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
+
+    file fin: text open read_mode is "input_decoder_allsnr_r050_cols.txt";
+    file fout: text open read_mode is "output_decoder_allsnr_r050_cols.txt";
     signal cnb_input_sig: t_cnb_message_tc_top_level;
+
 
 
 
@@ -140,42 +144,16 @@ begin
                 -- input_tb(i)(j) <= to_signed(val, BW_APP);    -- uncomment this and comment loop when testing top_level directly (not top_level_wrapper)
                 end loop;
             end loop;
+            wait for 280 * PERIOD;
         else
-            -- wait for 360 * PERIOD;
-            -- assert false
-            -- report "end of inputs"
-            -- severity failure;
-            wait;
+            assert false
+            report "end of inputs"
+            severity failure;
+            -- wait;
         end if;
     end process;
 
-    process (new_codeword_tb)
-        variable l: line;
-        variable val: integer;
-        variable val_signed: signed(BW_APP - 1 downto 0);
-    begin
-        if (new_codeword_tb'event and  new_codeword_tb = '1') then
-            if (not endfile(fin)) then
-                for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
-                    for j in 0 to SUBMAT_SIZE - 1 loop
-                        readline(fin, l);
-                        read(l, val);
-                        val_signed := to_signed(val, BW_APP);
-                        for k in 0 to BW_APP - 1 loop
-                            input_tb(i * SUBMAT_SIZE * BW_APP + j * BW_APP + k) <= val_signed(k);
-                        end loop;
-                -- input_tb(i)(j) <= to_signed(val, BW_APP);    -- uncomment this and comment loop when testing top_level directly (not top_level_wrapper)
-                    end loop;
-                end loop;
-            else
-                assert false
-                report "end of inputs"
-                severity failure;
-            end if;
-        end if;
-    end process;
-
-    
+       
     --------------------------------------------------------------------------------------
     -- output comparison
     --------------------------------------------------------------------------------------
@@ -183,10 +161,17 @@ begin
     process
         variable l: line;
         variable val: integer := 0;
+        variable first: boolean := true;
+        
     begin
             wait for PD;
             if (not endfile(fout)) then
-                wait for PERIOD * 35;
+                if (first = true) then
+                    first := false;
+                    wait for PERIOD * 35;
+                else
+                    wait for PERIOD * 33;
+                end if;
                 for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
                     for j in 0 to SUBMAT_SIZE - 1 loop
                         readline(fout, l);

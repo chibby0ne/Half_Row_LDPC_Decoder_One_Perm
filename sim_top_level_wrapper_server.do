@@ -56,15 +56,11 @@ add wave -unsigned sim:/dut/top_level_ins/iter
 
 add wave -unsigned sim:/valid_output_tb
 add wave -unsigned sim:/new_codeword_tb
-add wave -unsigned sim:/dut/top_level_ins/controller_ins/ok_checks_sig
-add wave -unsigned sim:/dut/top_level_ins/controller_ins/pchecks_sig
-add wave -unsigned sim:/dut/top_level_ins/controller_ins/cng_counter_sig
 add wave -unsigned sim:/dut/top_level_ins/parity_out
 add wave -unsigned sim:/dut/top_level_ins/parity_out_reg
 
 add wave -unsigned sim:/dut/top_level_ins/finish_iter
 add wave -unsigned sim:/dut/top_level_ins/output_in
-add wave -unsigned sim:/dut/top_level_ins/output_module_ins/input_reg_sig
 add wave -unsigned sim:/output_tb
 
 run -all

@@ -107,7 +107,6 @@ package pkg_components is
 
                  rst: in std_logic;
                  clk: in std_logic;
-                 split: in std_logic;
                  ena_msg_ram: in std_logic;
                  ena_vc: in std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
                  ena_rp: in std_logic;
@@ -134,7 +133,6 @@ package pkg_components is
                 clk           : in std_logic;
                 ena_cf        : in std_logic;
                 data_in       : in t_cn_message;
-                split         : in std_logic; -- is the CN working in split mode
 
                 -- OUTPUTS
                 data_out      : out t_cn_message
