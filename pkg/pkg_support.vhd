@@ -18,6 +18,11 @@ use work.pkg_types.all;
 
 
 package pkg_support is
+    
+    -- signal for monitoring finishing iter
+    signal monitor_finish_iter: std_logic := '0';
+    
+
 
 	--! convert t_chv_array into std_logic_vector as input to a RAM
 	function chv_array_2_std_logic_vector(input: in t_chv_array) return std_logic_vector;
