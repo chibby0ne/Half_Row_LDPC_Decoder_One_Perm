@@ -93,11 +93,7 @@ architecture circuit of top_level is
     signal input_or_cnb: t_app_message_half_codeword;
     signal shifting_info: t_shift_contr;
     signal shifting_info_out: t_app_message_half_codeword;
-    signal sel_mux_input_app_second: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
     
-    
-
-   
 
 begin
 
@@ -135,22 +131,9 @@ begin
         shifting_info_perm_net: permutation_network_inver port map (
             input => input_or_cnb(i),
             shift => shifting_info(i),
-            output => shifting_info_out(i)
-        );
-    end generate gen_shifting_info_perm_net;
-
-    
-    --------------------------------------------------------------------------------------
-    -- mux at input of app
-    --------------------------------------------------------------------------------------
-    gen_mux_input_app_second: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        mux_input_app_second_ins: mux2_1 port map (
-            input0 => input_or_cnb(i),
-            input1 => shifting_info_out(i),
-            sel => sel_mux_input_app_second(i),
             output => app_in(i)
         );
-    end generate gen_mux_input_app_second;
+    end generate gen_shifting_info_perm_net;
 
     
     --------------------------------------------------------------------------------------
@@ -314,7 +297,6 @@ begin
              shifting_info => shifting_info,
              sel_mux_input_halves => sel_mux_input_halves,
              sel_mux_input_app => sel_mux_input_app,
-             sel_mux_input_app_second => sel_mux_input_app_second,
              sel_mux_output_app => sel_mux_output_app
     );
 

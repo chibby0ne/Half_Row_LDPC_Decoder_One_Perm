@@ -228,7 +228,6 @@ package pkg_components is
 
                  sel_mux_input_halves: out std_logic;
                  sel_mux_input_app: out std_logic;
-                 sel_mux_input_app_second: out std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
                  sel_mux_output_app: out t_mux_out_app                    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
              );
 

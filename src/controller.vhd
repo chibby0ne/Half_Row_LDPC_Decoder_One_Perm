@@ -45,7 +45,6 @@ entity controller is
              shifting_info: out t_shift_contr;
              sel_mux_input_halves: out std_logic;     -- mux choosing input codeword halves
              sel_mux_input_app: out std_logic;
-             sel_mux_input_app_second: out std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
              sel_mux_output_app: out t_mux_out_app    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
          );
 end entity controller;
@@ -398,10 +397,9 @@ begin
 
                 for i in 0 to CFU_PAR_LEVEL - 1 loop
                     if (matrix_last_row(CFU_PAR_LEVEL + i) = current_row) then
-                        sel_mux_input_app_second(i) <= '1';
                         shifting_info(i) <= std_logic_vector(to_unsigned(matrix_shifting_info(CFU_PAR_LEVEL + i), shifting_info(i)'length));
                     else
-                        sel_mux_input_app_second(i) <= '0';
+                        shifting_info(i) <= std_logic_vector(to_unsigned(0, shifting_info(i)'length));
                     end if;
                 end loop;
 
@@ -661,10 +659,9 @@ begin
 
                 for i in 0 to CFU_PAR_LEVEL - 1 loop
                     if (matrix_last_row(i) = current_row) then
-                        sel_mux_input_app_second(i) <= '1';
                         shifting_info(i) <= std_logic_vector(to_unsigned(matrix_shifting_info(i), shifting_info(i)'length));
                     else
-                        sel_mux_input_app_second(i) <= '0';
+                        shifting_info(i) <= std_logic_vector(to_unsigned(0, shifting_info(i)'length));
                     end if;
                 end loop;
 

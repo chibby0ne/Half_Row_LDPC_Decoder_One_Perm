@@ -5,7 +5,6 @@ add wave -decimal sim:/dut/top_level_ins/input_newcode
 add wave -unsigned sim:/dut/top_level_ins/sel_mux_input_halves
 add wave -unsigned sim:/dut/top_level_ins/shifting_info_out
 add wave -unsigned sim:/dut/top_level_ins/input_or_cnb
-add wave -unsigned sim:/dut/top_level_ins/sel_mux_input_app_second
 add wave -decimal sim:/dut/top_level_ins/app_in 
 add wave -unsigned sim:/dut/top_level_ins/sel_mux_output_app
 add wave -unsigned sim:/dut/top_level_ins/sel_mux_input_app
@@ -36,7 +35,6 @@ add wave -unsigned sim:/dut/top_level_ins/app_rd_addr
 add wave -unsigned sim:/dut/top_level_ins/app_wr_addr
 add wave -unsigned sim:/dut/top_level_ins/msg_rd_addr
 add wave -unsigned sim:/dut/top_level_ins/msg_wr_addr
-add wave -unsigned sim:/dut/top_level_ins/sel_mux_input_app_second
 
 
 add wave -unsigned sim:/dut/top_level_ins/gen_cnbs(0)/cnbs_ins/addr_msg_ram_read_reg
