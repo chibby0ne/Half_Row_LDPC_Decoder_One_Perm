@@ -223,6 +223,7 @@ begin
 
                 -- first time
                 first_time := true;
+                current_row := 0;
 
                 --
                 -- App ram (NOT ENABLED)
