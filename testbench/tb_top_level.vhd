@@ -61,21 +61,16 @@ architecture circuit of tb_top_level is
     -- file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
     -- file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
 
-    file fin: text open read_mode is "input_decoder_allsnr_r050_cols.txt";
-    file fout: text open read_mode is "output_decoder_allsnr_r050_cols.txt";
+    file fin: text open read_mode is "input_files/input_decoder_allsnr_r050_cols.txt";
+    file fout: text open read_mode is "output_files/output_decoder_allsnr_r050_cols.txt";
     signal init: std_logic;
     
-
-
-
-
-
 begin
 
     --------------------------------------------------------------------------------------
     -- component instantiation
     --------------------------------------------------------------------------------------
-    dut: top_level_wrapper port map (
+    dut: top_level port map (
                                 -- inputs
                                 clk => clk_tb,
                                 rst => rst_tb,

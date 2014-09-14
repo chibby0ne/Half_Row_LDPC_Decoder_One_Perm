@@ -60,8 +60,8 @@ architecture circuit of tb_top_level_wrapper is
     -- file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
     -- file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
 
-    file fin: text open read_mode is "input_decoder_allsnr_r050_cols.txt";
-    file fout: text open read_mode is "output_decoder_allsnr_r050_cols.txt";
+    file fin: text open read_mode is "input_files/input_decoder_allsnr_r050_cols.txt";
+    file fout: text open read_mode is "output_files/output_decoder_allsnr_r050_cols.txt";
     signal init: std_logic;
     
 

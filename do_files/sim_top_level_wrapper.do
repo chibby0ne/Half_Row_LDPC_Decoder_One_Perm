@@ -1,4 +1,4 @@
-vsim work.top_level_tb
+vsim work.tb_top_level_wrapper
 add wave -unsigned sim:/clk_tb
 add wave -decimal sim:/input_tb
 add wave -decimal sim:/dut/top_level_ins/input_newcode
