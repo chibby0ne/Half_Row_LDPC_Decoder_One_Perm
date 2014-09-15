@@ -35,7 +35,7 @@ architecture circuit of tb_top_level is
                  clk: in std_logic;
                  rst: in std_logic;
                  code_rate: in t_code_rate;
-                 input: in t_app_message_full_codeword;
+                 input: in t_app_message_half_codeword;
 
         -- outputs
                  new_codeword: out std_logic;
@@ -51,7 +51,7 @@ architecture circuit of tb_top_level is
     signal clk_tb: std_logic := '0';
     signal rst_tb: std_logic := '0';
     signal code_rate_tb: t_code_rate;
-    signal input_tb: t_app_message_full_codeword;
+    signal input_tb: t_app_message_half_codeword;
     signal new_codeword_tb: std_logic := '0';
     signal valid_output_tb: std_logic := '0';
     signal output_tb: t_hard_decision_full_codeword;
@@ -61,10 +61,22 @@ architecture circuit of tb_top_level is
     -- file fin: text open read_mode is "input_decoder_high_SNR_oneword.txt";
     -- file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
 
-    file fin: text open read_mode is "input_files/input_decoder_allsnr_r050_cols.txt";
-    file fout: text open read_mode is "output_files/output_decoder_allsnr_r050_cols.txt";
-    signal init: std_logic;
+    -- R050
+    -- file fin: text open read_mode is "input_files/input_decoder_allsnr_r050_cols.txt";
+    -- file fout: text open read_mode is "output_files/output_decoder_allsnr_r050_cols.txt";
+
+    -- R062
+    file fin: text open read_mode is "input_files/input_decoder_allsnr_r062_cols.txt";
+    file fout: text open read_mode is "output_files/output_decoder_allsnr_r062_cols.txt";
+
+    -- R075
+    -- file fin: text open read_mode is "input_files/input_decoder_allsnr_r075_cols.txt";
+    -- file fout: text open read_mode is "output_files/output_decoder_allsnr_r075_cols.txt";
     
+    -- R081
+    -- file fin: text open read_mode is "input_files/input_decoder_allsnr_r081_cols.txt";
+    -- file fout: text open read_mode is "output_files/output_decoder_allsnr_r081_cols.txt";
+
 begin
 
     --------------------------------------------------------------------------------------
@@ -97,11 +109,11 @@ begin
 
 
     -- code rate
-    code_rate_tb <= R050;           -- R050
+    code_rate_tb <= R062;           -- R050
 
 
     -- used to load the first codeword
-    init <= '1', '0' after CLK_PERIOD;
+    -- init <= '1', '0' after CLK_PERIOD;
 
     -- input
     -- process
@@ -133,13 +145,14 @@ begin
     --
     
     -- input 
-    process (new_codeword_tb, init)
+    process (new_codeword_tb, clk_tb)
         variable l: line;
         variable val: integer;
     begin
-        if ((init'event and init = '1') or (new_codeword_tb'event and new_codeword_tb = '1')) then
+        -- if ((init'event and init = '1') or (new_codeword_tb'event and new_codeword_tb = '1')) then
+        if ((new_codeword_tb'event and new_codeword_tb = '1') or (clk_tb'event and clk_tb = '1' and new_codeword_tb = '1')) then
             if (not endfile(fin)) then
-                for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
+                for i in 0 to CFU_PAR_LEVEL - 1 loop
                     for j in 0 to SUBMAT_SIZE - 1 loop
                         readline(fin, l);
                         read(l, val);

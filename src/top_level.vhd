@@ -22,7 +22,7 @@ entity top_level is
         clk: in std_logic;
         rst: in std_logic;
         code_rate: in t_code_rate;
-        input: in t_app_message_full_codeword; 
+        input: in t_app_message_half_codeword; 
 
         -- outputs
         new_codeword: out std_logic;
@@ -33,7 +33,7 @@ end entity top_level;
 architecture circuit of top_level is
 
     -- signal used in mux selecting input half
-    signal input_newcode: t_app_message_half_codeword;
+    -- signal input_newcode: t_app_message_half_codeword;
 
     --signals used in mux selecting input of app from inputs or from CNBs
     signal cnb_output_in_app: t_app_message_half_codeword;
@@ -84,7 +84,7 @@ architecture circuit of top_level is
     signal msg_wr_addr: t_msg_ram_addr;
     signal shift: t_shift_contr;
 
-    signal sel_mux_input_halves: std_logic;     -- selects which half is being stored 
+    -- signal sel_mux_input_halves: std_logic;     -- selects which half is being stored 
     signal sel_mux_input_app: std_logic;        
     signal sel_mux_output_app: t_mux_out_app;   -- selects which value to use as CNB input: dummy, from inputs, or from app
 
@@ -101,15 +101,15 @@ begin
     --------------------------------------------------------------------------------------
     -- muxes to select halves of codeword
     --------------------------------------------------------------------------------------
-    gen_mux_input_halves: for i in 0 to CFU_PAR_LEVEL - 1 generate
-        mux_input_halves_ins: mux2_1 port map (
-            input0 => input(i),            
-            input1 => input(CFU_PAR_LEVEL + i),         
-            sel => sel_mux_input_halves,
-            output => input_newcode(i)
-        );
-    end generate gen_mux_input_halves;
-    
+    -- gen_mux_input_halves: for i in 0 to CFU_PAR_LEVEL - 1 generate
+    --     mux_input_halves_ins: mux2_1 port map (
+    --         input0 => input(i),            
+    --         input1 => input(CFU_PAR_LEVEL + i),         
+    --         sel => sel_mux_input_halves,
+    --         output => input_newcode(i)
+    --     );
+    -- end generate gen_mux_input_halves;
+    --
 
     --------------------------------------------------------------------------------------
     -- mux to select input of app
@@ -117,7 +117,8 @@ begin
     gen_mux_input_app: for i in 0 to CFU_PAR_LEVEL - 1 generate
         mux_input_app_ins: mux2_1 port map (
             input0 => cnb_output_in_app(i),
-            input1 => input_newcode(i),
+            -- input1 => input_newcode(i),
+            input1 => input(i),
             sel => sel_mux_input_app,
             output => input_or_cnb(i)
         );
@@ -168,7 +169,8 @@ begin
         mux3_1ins: mux3_1 port map (
             input0 => app_out(i),
             input1 => dummy_values,
-            input2 => input_newcode(i),
+            -- input2 => input_newcode(i),
+            input2 => input(i),
             sel => sel_mux_output_app(i),                     -- because 0th is MS and matrix_addr starts from 0 onward
             output => mux_output_app_out(i)
         );
@@ -295,7 +297,7 @@ begin
              msg_wr_addr => msg_wr_addr,
              shift => shift,
              shifting_info => shifting_info,
-             sel_mux_input_halves => sel_mux_input_halves,
+             -- sel_mux_input_halves => sel_mux_input_halves,
              sel_mux_input_app => sel_mux_input_app,
              sel_mux_output_app => sel_mux_output_app
     );

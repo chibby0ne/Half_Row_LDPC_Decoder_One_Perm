@@ -23,7 +23,7 @@ entity top_level_wrapper is
         clk: in std_logic;
         rst: in std_logic;
         code_rate: in std_logic_vector(1 downto 0);                 -- 4 possible code rates log2 4 = 2
-        input: in std_logic_vector(MAX_CHV * BW_APP - 1 downto 0);  -- 672 signals of BW_APP bits each
+        input: in std_logic_vector((MAX_CHV / 2) * BW_APP - 1 downto 0);  -- 672 signals of BW_APP bits each
     -- outputs
         new_codeword: out std_logic;
         valid_output: out std_logic;
@@ -33,7 +33,7 @@ end entity top_level_wrapper;
 architecture circuit of top_level_wrapper is
 
     signal code_rate_map: t_code_rate;
-    signal input_map: t_app_message_full_codeword;
+    signal input_map: t_app_message_half_codeword;
     signal output_map: t_hard_decision_full_codeword;
 
 
@@ -52,7 +52,7 @@ begin
 
 
     -- input
-    gen_input: for i in 0 to MAX_CHV - 1 generate
+    gen_input: for i in 0 to MAX_CHV / 2 - 1 generate
         gen_input_detail: for j in 0 to BW_APP - 1 generate
             input_map(i / SUBMAT_SIZE)(i mod SUBMAT_SIZE)(j) <= input(i * BW_APP + j);
         end generate gen_input_detail;

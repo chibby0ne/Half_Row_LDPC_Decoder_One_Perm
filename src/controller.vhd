@@ -43,7 +43,7 @@ entity controller is
              msg_wr_addr: out t_msg_ram_addr;
              shift: out t_shift_contr;
              shifting_info: out t_shift_contr;
-             sel_mux_input_halves: out std_logic;     -- mux choosing input codeword halves
+             -- sel_mux_input_halves: out std_logic;     -- mux choosing input codeword halves
              sel_mux_input_app: out std_logic;
              sel_mux_output_app: out t_mux_out_app    -- mux output of appram used for selecting input of CNB (0 = app, 1 = dummy, 2 = new_code)
          );
@@ -230,7 +230,7 @@ begin
                 --
                 app_rd_addr <= '0';
                 app_wr_addr <= '0';
-                sel_mux_input_halves <= '0';
+                -- sel_mux_input_halves <= '0';
                 sel_mux_input_app <= '0';
 
                 parity_out_reg <= (others => (others => '0'));
@@ -293,7 +293,7 @@ begin
 
                     ena_msg_ram <= '0';
                     ena_vc <= (others => '1');                             -- ENA_VC for the the first time it is in this state (writing to APP)
-                    sel_mux_input_halves <= '0';                            -- start with MS half
+                    -- sel_mux_input_halves <= '0';                            -- start with MS half
                     sel_mux_input_app <= '1';                               -- store in APP from input
 
                     app_wr_addr <= '0';                                     -- store in APP in first half
@@ -308,6 +308,7 @@ begin
                     msg_row_rd := 0;
                     msg_row_wr := 0;
 
+                    new_codeword <= '1';
                 else
 
                     ena_msg_ram <= '1';
@@ -424,7 +425,7 @@ begin
                     end if;
                     finish_iter <= '1';
                     monitor_finish_iter <= '1';
-                    new_codeword <= '1';
+                    new_codeword <= '0';
                     nx_state <= FINISH;
                 else
                     nx_state <= SECOND;
@@ -451,12 +452,15 @@ begin
                 -- APP RAM  or NEW_CODEWORD
                 --
                 if (first_time = true) then
-                    sel_mux_input_halves <= '1';                -- get codeword from input 
+                    -- sel_mux_input_halves <= '1';                -- get codeword from input 
 
                     ena_vc <= (others => '1');                  -- store second half in APP
                     sel_mux_input_app <= '1';                   -- store in APP from input second half
 
                     app_wr_addr <= '1';                         -- store in address 1 of APP
+
+                    new_codeword <= '0';
+
                 else
                     sel_mux_input_app <= '0';
                     ena_vc <= (others => '0');                  -- using APP values

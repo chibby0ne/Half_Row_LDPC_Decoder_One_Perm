@@ -1,8 +1,6 @@
 vsim work.tb_top_level
 add wave -unsigned sim:/clk_tb
 add wave -decimal sim:/input_tb
-add wave -decimal sim:/dut/input_newcode
-add wave -unsigned sim:/dut/sel_mux_input_halves
 add wave -unsigned sim:/dut/shifting_info_out
 add wave -unsigned sim:/dut/input_or_cnb
 add wave -decimal sim:/dut/app_in 

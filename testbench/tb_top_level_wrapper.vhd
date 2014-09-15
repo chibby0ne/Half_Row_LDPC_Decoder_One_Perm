@@ -35,7 +35,7 @@ architecture circuit of tb_top_level_wrapper is
                  clk: in std_logic;
                  rst: in std_logic;
                  code_rate: in std_logic_vector(1 downto 0);                 -- 4 possible code rates log2 4 = 2
-                 input: in std_logic_vector(MAX_CHV * BW_APP - 1 downto 0);  -- 672 signals of BW_APP bits each
+                 input: in std_logic_vector((MAX_CHV / 2) * BW_APP - 1 downto 0);  -- 672 signals of BW_APP bits each
         -- outputs
                  new_codeword: out std_logic;
                  valid_output: out std_logic;
@@ -49,7 +49,7 @@ architecture circuit of tb_top_level_wrapper is
     signal clk_tb: std_logic := '0';
     signal rst_tb: std_logic := '0';
     signal code_rate_tb: std_logic_vector(1 downto 0);
-    signal input_tb: std_logic_vector(MAX_CHV * BW_APP - 1 downto 0);
+    signal input_tb: std_logic_vector((MAX_CHV / 2) * BW_APP - 1 downto 0);
     signal new_codeword_tb: std_logic := '0';
     signal valid_output_tb: std_logic := '0';
     signal output_tb: std_logic_vector(MAX_CHV - 1 downto 0);
@@ -104,7 +104,7 @@ begin
     code_rate_tb <= "00";           -- R050
 
     -- used to load the first codeword
-    init <= '1', '0' after CLK_PERIOD;
+    -- init <= '1', '0' after CLK_PERIOD;
 
     -- input
     -- process
@@ -136,14 +136,14 @@ begin
     --
     
     -- input 
-    process (new_codeword_tb, init)
+    process (new_codeword_tb, clk_tb)
         variable l: line;
         variable val: integer;
         variable val_signed: signed(BW_APP - 1 downto 0);
     begin
-        if ((init'event and init = '1') or (new_codeword_tb'event and new_codeword_tb = '1')) then
+        if ((new_codeword_tb'event and new_codeword_tb = '1') or (clk_tb'event and clk_tb = '1' and new_codeword_tb = '1')) then
             if (not endfile(fin)) then
-                for i in 0 to 2 * CFU_PAR_LEVEL - 1 loop
+                for i in 0 to CFU_PAR_LEVEL - 1 loop
                     for j in 0 to SUBMAT_SIZE - 1 loop
                         readline(fin, l);
                         read(l, val);
