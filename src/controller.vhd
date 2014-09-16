@@ -75,22 +75,7 @@ architecture circuit of controller is
     
     signal matrix_last_row: t_array16 := (others => 0);
     
-
     signal parity_out_reg: t_parity_out_contr;
-    
-
-    -- iterating signal
-
-    -- signals used for debugging (assigned by variables)
-    signal index_row_sig: natural := 0;
-    signal cng_counter_sig: natural := 0;
-    signal vector_addr_sig: natural := 0;
-    signal start_pos_next_half_sig: natural := 0;
-    signal ok_checks_sig: natural := 0;
-    signal pchecks_sig: std_logic_vector(SUBMAT_SIZE - 1 downto 0) := (others => '0');
-    signal current_row_sig: natural range 0 to 8 := 0;
-    
-    
     
 begin
 
@@ -98,41 +83,10 @@ begin
     -- selection of matrices depending on the code rate 
     --------------------------------------------------------------------------------------
 
-    -- gen_matrix_addr: for i in 0 to 63 generate
-    --     matrix_addr(i) <= IEEE_802_11AD_P42_N672_R050_ADDR(i) when code_rate = R050 else 
-    --                       IEEE_802_11AD_P42_N672_R062_ADDR(i) when i < 60 else -1 when code_rate = R062 else
-    --                       IEEE_802_11AD_P42_N672_R075_ADDR(i) when i < 60 else -1 when code_rate = R075 else
-    --                       IEEE_802_11AD_P42_N672_R081_ADDR(i) when i < 48 else -1 when code_rate = R081;
-    -- end generate gen_matrix_addr;
-    --
-    --
-    -- -- changed to use offset matrix instead of original shift because of one permutation network
-    -- gen_matrix_shift: for i in 0 to 63 generate
-    --     matrix_shift(i) <= IEEE_802_11AD_P42_N672_R050_OFFSET(i) when code_rate = R050 else 
-    --                        IEEE_802_11AD_P42_N672_R062_OFFSET(i) when i < 60 else -1 when code_rate = R062 else
-    --                        IEEE_802_11AD_P42_N672_R075_OFFSET(i) when i < 60 else -1 when code_rate = R075 else
-    --                        IEEE_802_11AD_P42_N672_R081_OFFSET(i) when i < 48 else -1 when code_rate = R081;
-    -- end generate gen_matrix_shift;
-
-    -- gen_matrix_shifting_info: for i in 0 to 2 * CFU_PAR_LEVEL - 1 generate
-    --     matrix_shifting_info(i) <= IEEE_802_11AD_P42_N672_R050_SHIFTING_INFO(i) when code_rate = R050 else
-    --                                IEEE_802_11AD_P42_N672_R062_SHIFTING_INFO(i) when code_rate = R062 else
-    --                                IEEE_802_11AD_P42_N672_R075_SHIFTING_INFO(i) when code_rate = R075 else
-    --                                IEEE_802_11AD_P42_N672_R081_SHIFTING_INFO(i) when code_rate = R081;
-    -- end generate gen_matrix_shifting_info;
-
     matrix_shifting_info <= IEEE_802_11AD_P42_N672_R050_SHIFTING_INFO when code_rate = R050 else
                             IEEE_802_11AD_P42_N672_R062_SHIFTING_INFO when code_rate = R062 else
                             IEEE_802_11AD_P42_N672_R075_SHIFTING_INFO when code_rate = R075 else
                             IEEE_802_11AD_P42_N672_R081_SHIFTING_INFO when code_rate = R081;
-
-
-    -- gen_matrix_last_row: for i in 0 to 2 * CFU_PAR_LEVEL - 1 generate
-    --     matrix_last_row(i) <= IEEE_802_11AD_P42_N672_R050_LAST_ROWS(i) when code_rate = R050 else
-    --                           IEEE_802_11AD_P42_N672_R062_LAST_ROWS(i) when code_rate = R062 else
-    --                           IEEE_802_11AD_P42_N672_R075_LAST_ROWS(i) when code_rate = R075 else
-    --                           IEEE_802_11AD_P42_N672_R081_LAST_ROWS(i) when code_rate = R081;
-    -- end generate gen_matrix_last_row;
 
     matrix_last_row <= IEEE_802_11AD_P42_N672_R050_LAST_ROWS when code_rate = R050 else
                        IEEE_802_11AD_P42_N672_R062_LAST_ROWS when code_rate = R062 else
@@ -140,11 +94,6 @@ begin
                        IEEE_802_11AD_P42_N672_R081_LAST_ROWS;
 
 
-    -- matrix_length <= IEEE_802_11AD_P42_N672_R050_ADDR'length when code_rate = R050 else
-    --                  IEEE_802_11AD_P42_N672_R062_ADDR'length when code_rate = R062 else
-    --                  IEEE_802_11AD_P42_N672_R075_ADDR'length when code_rate = R075 else
-    --                  IEEE_802_11AD_P42_N672_R081_ADDR'length;
-    --
     matrix_rows <= R050_ROWS when code_rate = R050 else
                    R062_ROWS when code_rate = R062 else
                    R075_ROWS when code_rate = R075 else
@@ -155,7 +104,6 @@ begin
                                MAX_CHECK_DEGREE_R062 when code_rate = R062 else
                                MAX_CHECK_DEGREE_R075 when code_rate = R075 else
                                MAX_CHECK_DEGREE_R081;
-
 
 
     --------------------------------------------------------------------------------------
@@ -218,8 +166,6 @@ begin
         
         variable current_row: natural range 0 to 8 := 0;
         
-        
-        
     begin
         case pr_state is
 
@@ -249,7 +195,6 @@ begin
                 --
                 app_rd_addr <= '0';
                 app_wr_addr <= '0';
-                -- sel_mux_input_halves <= '0';
                 sel_mux_input_app <= '0';
 
                 parity_out_reg <= (others => (others => '0'));
@@ -412,9 +357,6 @@ begin
                         msg_row_rd := 0;
                     end if;
 
-
-
-
                 end if;
 
 
@@ -426,7 +368,6 @@ begin
                 vector_addr := cng_counter * matrix_max_check_degree;       -- base address for the matrix
                 index_row := 0;
                 for i in 0 to CFU_PAR_LEVEL - 1 loop                        --- maybe change order of loop if not storing in correct place
-                                                                            -- if (index_row < matrix_max_check_degree / 2) then                -- have we check entire first half row values?
                     if (i = matrix_addr(index_row + vector_addr)) then            -- is the value in app or dummy value 
                         if (first_time = true) then
                             sel_mux_output_app(i) <= std_logic_vector(to_unsigned(2, sel_mux_output_app(0)'length));            
@@ -441,11 +382,6 @@ begin
                         sel_mux_output_app(i) <= std_logic_vector(to_unsigned(1, sel_mux_output_app(0)'length));         -- put max_extr_msg
                         shift(i) <= std_logic_vector(to_unsigned(0, shift(0)'length));                  -- it is indifferent how much we shift 
                     end if;
-                -- else
-                --     ena_vc_first(i) := '0';
-                --     sel_mux_output_app(i) <= std_logic_vector(to_unsigned(1, sel_mux_output_app(0)'length));         -- put max_extr_msg
-                --     shift(i) <= std_logic_vector(to_unsigned(0, shift(0)'length));                  -- it is indifferent how much we shift 
-                -- end if;
                 end loop;
 
                 start_pos_next_half := index_row;
@@ -474,16 +410,6 @@ begin
                 end loop;
 
 
-                --
-                -- signals for debugging
-                --
-                index_row_sig <= index_row;
-                cng_counter_sig <= cng_counter;
-                vector_addr_sig <= vector_addr;
-                start_pos_next_half_sig <= start_pos_next_half;
-                ok_checks_sig <= ok_checks;
-                current_row_sig <= current_row;
-
 
                 --
                 -- next state
@@ -499,7 +425,6 @@ begin
                 else
                     nx_state <= SECOND;
                 end if;
-
 
 
             --------------------------------------------------------------------------------------
@@ -593,18 +518,6 @@ begin
 
 
                 --
-                -- signals for debugging
-                --
-                index_row_sig <= index_row;
-                cng_counter_sig <= cng_counter;
-                vector_addr_sig <= vector_addr;
-                start_pos_next_half_sig <= start_pos_next_half;
-                ok_checks_sig <= ok_checks;
-                pchecks_sig <= pchecks;
-                current_row_sig <= current_row;
-
-
-                --
                 -- next state
                 --
                 nx_state <= THIRD;
@@ -677,16 +590,6 @@ begin
                 finish_iter <= '0';
                 monitor_finish_iter <= '0';
 
-                --
-                -- signals for debugging
-                --
-                index_row_sig <= index_row;
-                cng_counter_sig <= cng_counter;
-                vector_addr_sig <= vector_addr;
-                start_pos_next_half_sig <= start_pos_next_half;
-                ok_checks_sig <= ok_checks;
-                pchecks_sig <= pchecks;
-
 
                 --
                 -- next state
@@ -752,15 +655,6 @@ begin
                 msg_wr_addr <= std_logic_vector(to_unsigned(msg_row_wr, BW_MSG_RAM));
                 msg_row_wr := msg_row_wr + 1;
 
-
-
-                --
-                -- signals for debugging
-                --
-                index_row_sig <= index_row;
-                cng_counter_sig <= cng_counter;
-                vector_addr_sig <= vector_addr;
-                start_pos_next_half_sig <= start_pos_next_half;
 
 
                 --
