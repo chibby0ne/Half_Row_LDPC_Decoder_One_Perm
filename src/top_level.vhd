@@ -92,7 +92,6 @@ architecture circuit of top_level is
     -- signals added for shifting info mux and perm network
     signal input_or_cnb: t_app_message_half_codeword;
     signal shifting_info: t_shift_contr;
-    signal shifting_info_out: t_app_message_half_codeword;
     
 
 begin

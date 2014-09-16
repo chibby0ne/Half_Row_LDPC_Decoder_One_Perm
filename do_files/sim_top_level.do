@@ -1,11 +1,20 @@
 vsim work.tb_top_level
+add wave -unsigned sim:/rst_tb
 add wave -unsigned sim:/clk_tb
 add wave -decimal sim:/input_tb
-add wave -unsigned sim:/dut/shifting_info_out
+add wave -decimal sim:/code_rate_tb
+add wave -unsigned sim:/dut/shifting_info
 add wave -unsigned sim:/dut/input_or_cnb
 add wave -decimal sim:/dut/app_in 
 add wave -unsigned sim:/dut/sel_mux_output_app
 add wave -unsigned sim:/dut/sel_mux_input_app
+
+add wave -decimal sim:/dut/controller_ins/matrix_addr
+add wave -decimal sim:/dut/controller_ins/matrix_shift
+add wave -unsigned sim:/dut/controller_ins/matrix_shifting_info
+add wave -unsigned sim:/dut/controller_ins/matrix_max_check_degree
+add wave -unsigned sim:/dut/controller_ins/matrix_rows
+add wave -unsigned sim:/dut/controller_ins/current_row_sig
 
 add wave -decimal sim:/dut/mux_output_app_out
 add wave -decimal sim:/dut/gen_app_ram(0)/app_ram_ins/myram

@@ -62,12 +62,12 @@ architecture circuit of tb_top_level is
     -- file fout: text open read_mode is "output_decoder_high_SNR_oneword.txt";
 
     -- R050
-    -- file fin: text open read_mode is "input_files/input_decoder_allsnr_r050_cols.txt";
-    -- file fout: text open read_mode is "output_files/output_decoder_allsnr_r050_cols.txt";
+    file fin: text open read_mode is "input_files/input_decoder_allsnr_r050_cols.txt";
+    file fout: text open read_mode is "output_files/output_decoder_allsnr_r050_cols.txt";
 
     -- R062
-    file fin: text open read_mode is "input_files/input_decoder_allsnr_r062_cols.txt";
-    file fout: text open read_mode is "output_files/output_decoder_allsnr_r062_cols.txt";
+    -- file fin: text open read_mode is "input_files/input_decoder_allsnr_r062_cols.txt";
+    -- file fout: text open read_mode is "output_files/output_decoder_allsnr_r062_cols.txt";
 
     -- R075
     -- file fin: text open read_mode is "input_files/input_decoder_allsnr_r075_cols.txt";
@@ -105,11 +105,11 @@ begin
 
 
     -- rst
-    rst_tb <= '0';
+    rst_tb <= '1', '0' after CLK_PERIOD;
 
 
     -- code rate
-    code_rate_tb <= R062;           -- R050
+    code_rate_tb <= R050;           -- R050
 
 
     -- used to load the first codeword
@@ -145,12 +145,12 @@ begin
     --
     
     -- input 
-    process (new_codeword_tb, clk_tb)
+    process (new_codeword_tb, clk_tb, rst_tb)
         variable l: line;
         variable val: integer;
     begin
         -- if ((init'event and init = '1') or (new_codeword_tb'event and new_codeword_tb = '1')) then
-        if ((new_codeword_tb'event and new_codeword_tb = '1') or (clk_tb'event and clk_tb = '1' and new_codeword_tb = '1')) then
+        if (((new_codeword_tb'event and new_codeword_tb = '1') or (clk_tb'event and clk_tb = '1' and new_codeword_tb = '1')) and (rst_tb = '0')) then
             if (not endfile(fin)) then
                 for i in 0 to CFU_PAR_LEVEL - 1 loop
                     for j in 0 to SUBMAT_SIZE - 1 loop
@@ -162,7 +162,7 @@ begin
             else
                 assert false
                 report "end of inputs"
-                severity failure;
+                severity note;
             end if;
         end if;
     end process;
