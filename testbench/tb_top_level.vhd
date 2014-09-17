@@ -105,7 +105,6 @@ begin
         variable l: line;
         variable val: integer;
     begin
-        -- if ((init'event and init = '1') or (new_codeword_tb'event and new_codeword_tb = '1')) then
         if (((new_codeword_tb'event and new_codeword_tb = '1') or (clk_tb'event and clk_tb = '1' and new_codeword_tb = '1')) and (rst_tb = '0')) then
             if (not endfile(fin)) then
                 for i in 0 to CFU_PAR_LEVEL - 1 loop

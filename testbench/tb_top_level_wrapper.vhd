@@ -91,19 +91,19 @@ begin
 
 
     -- rst
-    rst_tb <= '0';
+    rst_tb <= '1', '0' after CLK_PERIOD;
 
 
     -- code rate
     code_rate_tb <= "00";           -- R050
 
     -- input 
-    process (new_codeword_tb, clk_tb)
+    process (new_codeword_tb, clk_tb, rst_tb)
         variable l: line;
         variable val: integer;
         variable val_signed: signed(BW_APP - 1 downto 0);
     begin
-        if ((new_codeword_tb'event and new_codeword_tb = '1') or (clk_tb'event and clk_tb = '1' and new_codeword_tb = '1')) then
+        if (((new_codeword_tb'event and new_codeword_tb = '1') or (clk_tb'event and clk_tb = '1' and new_codeword_tb = '1')) and (rst_tb = '0')) then
             if (not endfile(fin)) then
                 for i in 0 to CFU_PAR_LEVEL - 1 loop
                     for j in 0 to SUBMAT_SIZE - 1 loop
@@ -118,7 +118,7 @@ begin
             else
                 assert false
                 report "end of inputs"
-                severity failure;
+                severity note;
             end if;
         end if;
     end process;
@@ -127,7 +127,6 @@ begin
     -- output comparison
     --------------------------------------------------------------------------------------
 
-    
     process (monitor_finish_iter)
         variable l: line;
         variable val: integer := 0;
