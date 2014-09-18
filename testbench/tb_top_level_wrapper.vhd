@@ -68,7 +68,7 @@ begin
     --------------------------------------------------------------------------------------
     -- component instantiation
     --------------------------------------------------------------------------------------
-    dut: top_level_wrapper port map (
+    uut: top_level_wrapper port map (
                                 -- inputs
                                 clk => clk_tb,
                                 rst => rst_tb,
