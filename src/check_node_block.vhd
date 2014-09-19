@@ -44,7 +44,7 @@ architecture circuit of check_node_block is
     -- signals used by msg ram
     signal extrinsic_info_read: t_cn_message;
     signal extrinsic_info_write: t_cn_message;
-    signal zero: signed(BW_EXTR - 1 downto 0) := to_signed(0, BW_EXTR);
+    signal zero: signed(BW_EXTR - 1 downto 0);
     
     
 
@@ -81,6 +81,7 @@ begin
     --------------------------------------------------------------------------------------
     iter_int <= to_integer(unsigned(iter));
 
+    zero <= to_signed(0, BW_EXTR);
 
     --------------------------------------------------------------------------------------
     -- VC stage: Read APP to CNB

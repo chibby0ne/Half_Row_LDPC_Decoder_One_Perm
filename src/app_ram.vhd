@@ -32,7 +32,7 @@ architecture circuit of app_ram is
 
     -- signal declarations
     type memory is array (0 to APP_RAM_DEPTH - 1) of t_app_messages;
-    signal myram: memory := (others => (others => (others => '0')));
+    signal myram: memory;
 
 
 begin

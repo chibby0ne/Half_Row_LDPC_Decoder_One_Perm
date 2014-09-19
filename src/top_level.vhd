@@ -36,7 +36,7 @@ architecture circuit of top_level is
     signal cnb_output_in_app: t_app_message_half_codeword;
 
     -- signals used in mux at output of app, used for selecting where does CNBs input come from: dummy, inputs or apps
-    signal dummy_values: t_app_messages := (others => to_signed(31, BW_APP));        -- 31 is msg extr msg
+    signal dummy_values: t_app_messages;                            -- 31 is msg extr msg
     signal mux_output_app_out: t_app_message_half_codeword; 
     
     
@@ -65,7 +65,7 @@ architecture circuit of top_level is
     signal ena_rp: std_logic;
     signal ena_ct: std_logic;
     signal ena_cf: std_logic;
-    signal finish_iter: std_logic := '0';
+    signal finish_iter: std_logic;
     signal iter: t_iter;
     signal app_rd_addr: std_logic;
     signal app_wr_addr: std_logic;
@@ -84,6 +84,13 @@ architecture circuit of top_level is
 
 begin
 
+    
+    --------------------------------------------------------------------------------------
+    -- set up dummy values
+    --------------------------------------------------------------------------------------
+    gen_dummy_values: for i in 0 to SUBMAT_SIZE - 1 generate
+        dummy_values(i) <= to_signed(2**(BW_EXTR - 1) - 1, BW_APP);
+    end generate gen_dummy_values;
     
     --------------------------------------------------------------------------------------
     -- mux to select input of app

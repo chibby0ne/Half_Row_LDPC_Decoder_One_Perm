@@ -60,50 +60,24 @@ architecture circuit of controller is
 
 
     -- signals used for handling parity check matrix 
-    signal addr_length: std_logic := '0';
+    signal addr_length: std_logic;
 
 
     -- signals used for paritiy check matrix
     -- I'm choosing the biggest size of them and to address them I'm using the max check degree
-    signal matrix_addr: t_array64 := (others => 0);      
-    signal matrix_shift: t_array64 := (others => 0);
+    signal matrix_addr: t_array64;      
+    signal matrix_shift: t_array64;
     signal matrix_length: natural range 0 to 64;
-    signal matrix_rows: natural range 0 to 8:= 1;
+    signal matrix_rows: natural range 0 to 8;
     signal matrix_max_check_degree: natural range 0 to 16;
 
-    signal matrix_shifting_info: t_array16 := (others => 0);
+    signal matrix_shifting_info: t_array16;
     
-    signal matrix_last_row: t_array16 := (others => 0);
+    signal matrix_last_row: t_array16;
     
     signal parity_out_reg: t_parity_out_contr;
     
 begin
-
-    --------------------------------------------------------------------------------------
-    -- selection of matrices depending on the code rate 
-    --------------------------------------------------------------------------------------
-
-    matrix_shifting_info <= IEEE_802_11AD_P42_N672_R050_SHIFTING_INFO when code_rate = R050 else
-                            IEEE_802_11AD_P42_N672_R062_SHIFTING_INFO when code_rate = R062 else
-                            IEEE_802_11AD_P42_N672_R075_SHIFTING_INFO when code_rate = R075 else
-                            IEEE_802_11AD_P42_N672_R081_SHIFTING_INFO when code_rate = R081;
-
-    matrix_last_row <= IEEE_802_11AD_P42_N672_R050_LAST_ROWS when code_rate = R050 else
-                       IEEE_802_11AD_P42_N672_R062_LAST_ROWS when code_rate = R062 else
-                       IEEE_802_11AD_P42_N672_R075_LAST_ROWS when code_rate = R075 else
-                       IEEE_802_11AD_P42_N672_R081_LAST_ROWS;
-
-
-    matrix_rows <= R050_ROWS when code_rate = R050 else
-                   R062_ROWS when code_rate = R062 else
-                   R075_ROWS when code_rate = R075 else
-                   R081_ROWS;
-
-    -- matrix_max_check_degree <= matrix_length / matrix_rows;
-    matrix_max_check_degree <= MAX_CHECK_DEGREE_R050 when code_rate = R050 else
-                               MAX_CHECK_DEGREE_R062 when code_rate = R062 else
-                               MAX_CHECK_DEGREE_R075 when code_rate = R075 else
-                               MAX_CHECK_DEGREE_R081;
 
 
     --------------------------------------------------------------------------------------
@@ -130,41 +104,40 @@ begin
     process (pr_state)
 
         -- base address of matrix (cng_counter * matrix_max_check_degree)
-        variable vector_addr: integer range 0 to 64 := 0;
+        variable vector_addr: integer range 0 to 56;
 
         -- row number in reduced matrix
-        variable cng_counter: integer range 0 to 8 := 0;
+        variable cng_counter: integer range 0 to 8;
 
         -- iteratons
-        variable iter_int: integer range 0 to 10 := 0;
+        variable iter_int: integer range 0 to MAX_ITER;
 
         -- msg rams
-        variable msg_row_rd: integer range 0 to 16 := 0;
-        variable msg_row_wr: integer range 0 to 16 := 0;
+        variable msg_row_rd: integer range 0 to 16;
+        variable msg_row_wr: integer range 0 to 16;
 
         -- parity checks
-        variable ok_checks: integer range 0 to MAX_CHV / 2 := 0;
-        variable pchecks: std_logic_vector(SUBMAT_SIZE - 1 downto 0) := (others => '0');
+        variable ok_checks: integer range 0 to MAX_CHV / 2;
+        variable pchecks: std_logic_vector(SUBMAT_SIZE - 1 downto 0);
 
         -- start pos
-        variable start_pos_next_half: integer range 0 to 64 := 0;
-        variable index_row: integer range 0 to 64 := 0;
+        variable start_pos_next_half: integer range 0 to 64;
+        variable index_row: integer range 0 to 64;
 
         -- finish iterating
-        variable next_iter_last_iter: boolean := false;
-        variable complete: boolean := false;
+        variable next_iter_last_iter: boolean;
+        variable complete: boolean;
 
         -- start iterating
-        variable first_time: boolean := true;
-        variable first_matrix_calc: boolean := true;
+        variable first_time: boolean;
         
         -- aux variables
-        variable val: integer range 0 to 1 := 0;
+        variable val: integer range 0 to 1;
         
-        variable ena_vc_first: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
-        variable ena_vc_second: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0) := (others => '0');
+        variable ena_vc_first: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
+        variable ena_vc_second: std_logic_vector(CFU_PAR_LEVEL - 1 downto 0);
         
-        variable current_row: natural range 0 to 8 := 0;
+        variable current_row: natural range 0 to 8;
         
     begin
         case pr_state is
@@ -189,6 +162,35 @@ begin
                 -- first time
                 first_time := true;
                 current_row := 0;
+                iter_int := 0;
+
+
+
+                -- variables
+                vector_addr := 0;
+                cng_counter := 0;
+
+                msg_row_rd := 0;
+                msg_row_wr := 0;
+
+                ok_checks := 0;
+                pchecks := (others => '0');
+
+                start_pos_next_half := 0;
+                index_row := 0;
+
+                next_iter_last_iter := false;
+                complete := false;
+
+                first_time := true;
+
+                val := 0;
+                ena_vc_first := (others => '0');
+                ena_vc_second := (others => '0');
+
+                current_row := 0;
+
+
 
                 --
                 -- App ram (NOT ENABLED)
@@ -237,11 +239,7 @@ begin
                 --
                 -- next state
                 --
-                if (first_matrix_calc = true) then
-                    nx_state <= MATRIX_CALC;
-                else
-                    nx_state <= FIRST;
-                end if;
+                nx_state <= MATRIX_CALC;
 
 
                 
@@ -284,7 +282,27 @@ begin
                     end if;
                 end loop;
 
-                first_matrix_calc := false;
+                if (code_rate = R050) then
+                    matrix_shifting_info <= IEEE_802_11AD_P42_N672_R050_SHIFTING_INFO;
+                    matrix_last_row <= IEEE_802_11AD_P42_N672_R050_LAST_ROWS;
+                    matrix_rows <= R050_ROWS;
+                    matrix_max_check_degree <= MAX_CHECK_DEGREE_R050;
+                elsif (code_rate = R062) then
+                    matrix_shifting_info <= IEEE_802_11AD_P42_N672_R062_SHIFTING_INFO;
+                    matrix_last_row <= IEEE_802_11AD_P42_N672_R062_LAST_ROWS;
+                    matrix_rows <= R062_ROWS;
+                    matrix_max_check_degree <= MAX_CHECK_DEGREE_R062;
+                elsif (code_rate = R075) then
+                    matrix_shifting_info <= IEEE_802_11AD_P42_N672_R075_SHIFTING_INFO;
+                    matrix_last_row <= IEEE_802_11AD_P42_N672_R075_LAST_ROWS;
+                    matrix_rows <= R075_ROWS;
+                    matrix_max_check_degree <= MAX_CHECK_DEGREE_R075;
+                else 
+                    matrix_shifting_info <= IEEE_802_11AD_P42_N672_R081_SHIFTING_INFO;
+                    matrix_last_row <= IEEE_802_11AD_P42_N672_R081_LAST_ROWS;
+                    matrix_rows <= R081_ROWS;
+                    matrix_max_check_degree <= MAX_CHECK_DEGREE_R081;
+                end if;
 
                 nx_state <= FIRST;
 

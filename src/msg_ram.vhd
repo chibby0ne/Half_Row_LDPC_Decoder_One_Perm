@@ -33,7 +33,7 @@ architecture circuit of msg_ram is
 
     -- signal declarations
     type memory is array (0 to MSG_RAM_DEPTH - 1) of t_cn_message;    -- 16 max num of layers
-    signal myram: memory := (others => (others => (others => '0')));
+    signal myram: memory;
 
     signal wr_address_int: integer range 0 to 2**BW_MSG_RAM - 1;
     signal rd_address_int: integer range 0 to 2**BW_MSG_RAM - 1;

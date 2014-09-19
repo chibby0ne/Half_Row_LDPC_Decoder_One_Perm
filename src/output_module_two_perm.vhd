@@ -43,14 +43,14 @@ begin
     --------------------------------------------------------------------------------------
 
     process (clk, rst)
-        variable count: integer range 0 to 1 := 0;
-        variable val: integer range 0 to SUBMAT_SIZE - 1 := 0;      
-        variable base: integer range 0 to MAX_CHV - 1 := 0;         -- vng group
+        variable count: integer range 0 to 1;
+        variable base: integer range 0 to MAX_CHV - 1;         -- vng group
         variable input_reg: t_output_vector;
         
     begin
         if (rst = '1') then
             output <= (others => (others => '0'));
+            count := 0;
         elsif (clk'event and clk = '1') then
             if (finish_iter = '1') then
                 if (count = 0) then
