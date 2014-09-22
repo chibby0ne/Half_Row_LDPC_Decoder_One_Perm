@@ -2,7 +2,7 @@
 
 * Based on [this paper](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6674490)
 * Implements all 4 code rates
-* "one permutation" because it doesn't really use one but two permutation networks but one of them with a smaller activity factor than normal two permutation networks, because it uses offsets instead of shifts. For more information see [this other paper](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5439945)
+* *"one permutation"* - it doesn't really use one but two permutation networks because it is needed to support all code rates, but one of them has smaller activity factor than a normal operation permutation network, because it uses offsets instead of shifts. For more information see [this other paper](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5439945)
 
 #### do_files
 * *script_top.do* - compiles everything needed for top_level
