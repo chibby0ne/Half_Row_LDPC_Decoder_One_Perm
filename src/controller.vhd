@@ -52,7 +52,7 @@ end entity controller;
 architecture circuit of controller is
 
     -- signals used in FSM
-    type state is (START_RESET, MATRIX_CALC, FIRST, SECOND, THIRD, FOURTH, FINISH);
+    type state is (START, START_RESET, MATRIX_CALC, FIRST, SECOND, THIRD, FOURTH, FINISH);
     signal pr_state: state;
     signal nx_state: state;
     -- attribute enum_encoding: string;
@@ -77,6 +77,8 @@ architecture circuit of controller is
     
     signal parity_out_reg: t_parity_out_contr;
     
+    signal code_rate_reg: t_code_rate;
+    
 begin
 
 
@@ -88,7 +90,7 @@ begin
     process (clk, rst)
     begin
         if (rst = '1') then
-            pr_state <= START_RESET;
+            pr_state <= START;
         elsif (clk'event and clk = '1') then
             pr_state <= nx_state;
         end if;
@@ -130,6 +132,8 @@ begin
 
         -- start iterating
         variable first_time: boolean;
+        variable first_time_on: boolean;
+        
         
         -- aux variables
         variable val: integer range 0 to 1;
@@ -142,11 +146,21 @@ begin
     begin
         case pr_state is
 
+            
+            --------------------------------------------------------------------------------------
+            -- zero state(initialize)
+            --------------------------------------------------------------------------------------
+            when START =>
+
+                code_rate_reg <= code_rate;
+                first_time_on := true;
+
+                nx_state <= START_RESET;
+
 
             --------------------------------------------------------------------------------------
-            -- first state 
+            -- first state(where everything is reseted between codewords)
             --------------------------------------------------------------------------------------
-
             when START_RESET =>
 
                 --
@@ -239,7 +253,13 @@ begin
                 --
                 -- next state
                 --
-                nx_state <= MATRIX_CALC;
+                if (code_rate = code_rate_reg and first_time_on = false) then
+                    nx_state <= FIRST;
+                else
+                    first_time_on := false;
+                    code_rate_reg <= code_rate;
+                    nx_state <= MATRIX_CALC;
+                end if;
 
 
                 

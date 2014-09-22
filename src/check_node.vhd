@@ -101,8 +101,8 @@ architecture rtl_cfu of check_node is
     signal four_min_s3_out_out_mux: t_four_min_s3_out_array;
     signal four_min_s3_out_out_reg: t_four_min_s3_out_array;
 
-    signal first: std_logic := '0';
-    signal count: integer range 0 to 1 := 0;
+    signal first: std_logic;
+    signal count: integer range 0 to 1;
     
     
 begin
@@ -252,10 +252,13 @@ begin
     -------------------------------------------------------------------------------
     -- counter used for select signal in multiplexer
     -------------------------------------------------------------------------------
-    process (clk)
+    process (rst, clk)
         variable count_var: integer range 0 to 2 := 0;
     begin
-        if (clk'event and clk = '1') then
+        if (rst = '1') then
+            first <= '0';
+            count <= 0;
+        elsif (clk'event and clk = '1') then
             if (ena_cf = '1') then              -- clock gating (sync with input of cn. check drawing, try with ena_ct)
                 if (first = '0') then
                     first <= '1';
