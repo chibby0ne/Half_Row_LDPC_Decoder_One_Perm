@@ -1,8 +1,8 @@
 ### VHDL implementation of a Half-row Layered LDPC Decoder using "one permutation" Offset Matrix for standard IEEE 802.11ad 
 
-* Based on [this paper](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6674490)
+* Based on [this paper](https://github.com/chibby0ne/modifications/doc/06674490.pdf). Also available from [IEEE](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6674490)
 * Implements all 4 code rates
-* *"one permutation"* - it doesn't really use one but two permutation networks because it is needed to support all code rates, but one of them has smaller activity factor than a normal operation permutation network, because it uses offsets instead of shifts. For more information see [this other paper](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5439945)
+* *"one permutation"* - it doesn't really use one but two permutation networks because it is needed to support all code rates, but one of them has smaller activity factor than a normal operation permutation network, because it uses offsets instead of shifts. For more information see [this other paper](https://github.com/chibby0ne/modifications/doc/05439945) or from [IEEE](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5439945)
 
 #### do_files
 * *script_top.do* - compiles everything needed for top_level
